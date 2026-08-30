@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "critical_fields": ["invoice_id", "currency", "total_amount", "due_date"],
+  "max_critical_failures": 0,
+  "min_micro_f1": 0.98,
+  "min_exact_record_accuracy": 0.95,
+  "min_field_f1": {"invoice_id": 0.9, "supplier_name": 0.9, "currency": 0.9, "total_amount": 0.9, "due_date": 0.9},
+  "max_micro_f1_drop": 0.005,
+  "max_exact_record_accuracy_drop": 0.025
+}

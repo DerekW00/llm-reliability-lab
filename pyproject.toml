@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llm-reliability-lab"
+version = "0.1.0"
+description = "Synthetic fixture evaluation of invoice extraction and a simulated regression"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = "MIT"
+dependencies = []
+
+[project.scripts]
+reliability-lab = "reliability_lab.cli:main"
+
+[dependency-groups]
+dev = ["pytest==8.4.2", "ruff==0.12.12"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/reliability_lab"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"data" = "reliability_lab/resources/data"
+"policy.json" = "reliability_lab/resources/policy.json"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
