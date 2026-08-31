@@ -185,7 +185,7 @@ def validate_policy(data: Any) -> dict:
         _fail("policy.max_critical_failures: expected nonnegative integer")
 
     def rate(value: Any, where: str) -> None:
-        if type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 1:
+        if type(value) not in (int, float) or not 0 <= value <= 1 or not math.isfinite(value):
             _fail(f"{where}: expected finite rate in [0,1]")
 
     for key in ("min_micro_f1", "min_exact_record_accuracy", "max_micro_f1_drop",
@@ -216,6 +216,15 @@ def read_json(path: str | Path) -> dict:
         raise InputError(f"Cannot read JSON {path}: {exc}") from exc
     if not isinstance(value, dict):
         _fail(f"{path}: expected a JSON object")
+    pending = [value]
+    while pending:
+        item = pending.pop()
+        if isinstance(item, float) and not math.isfinite(item):
+            _fail(f"{path}: non-finite JSON number")
+        if isinstance(item, dict):
+            pending.extend(item.values())
+        elif isinstance(item, list):
+            pending.extend(item)
     return value
 
 
