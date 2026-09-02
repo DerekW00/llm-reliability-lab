@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "frozen_at_utc": "2026-09-12T05:16:27.230492+00:00",
+  "construction_stage": "documents_and_labels_frozen_before_prediction_construction",
+  "provenance": "original_synthetic_agent_authored_and_agent_reviewed",
+  "scope": "Demonstration fixtures; no private invoices, model inference, independent human annotation, or statistical holdout claim.",
+  "sha256_kind": "raw_file_bytes",
+  "files": {
+    "data/development.json": {
+      "sha256": "6ea77e04ff6ced3af2cebbc9ef25856acd247231048cdc94e6aa8819edbfa24a",
+      "case_count": 20,
+      "dataset_id": "synthetic-invoices-development-v1"
+    },
+    "data/evaluation.json": {
+      "sha256": "27b447e9318d25a4af94e2801ce35199e34771f0837603306172cbd8b89117e0",
+      "case_count": 40,
+      "dataset_id": "synthetic-invoices-evaluation-v1"
+    }
+  },
+  "policy": {
+    "path": "policy.json",
+    "sha256": "b81326e57c06b797858a346824596d2e84d6e64c4ad7b56c90a6027652b43ff2",
+    "frozen_contract_revision": "83fae78"
+  }
+}
