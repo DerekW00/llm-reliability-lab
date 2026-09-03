@@ -97,6 +97,23 @@ def test_hand_calculated_confusion_counts_and_abstentions():
     assert report["summary"]["case_count"] == report["summary"]["prediction_count"] == 5
 
 
+def test_asymmetric_precision_recall_and_micro_are_not_macro_averages():
+    partial = {**RECORD, "invoice_id": None, "supplier_name": "Other Studio", "due_date": None}
+    invented = {**NULL_RECORD, "invoice_id": "00127"}
+    report = evaluate(*artifacts([(RECORD, RECORD), (RECORD, partial), (NULL_RECORD, invented)]))
+    assert report["summary"]["micro"] == {
+        "tp": 7, "fp": 2, "fn": 3, "tn": 4,
+        "precision": 7 / 9, "recall": 7 / 10, "f1": 14 / 19,
+    }
+    assert report["fields"]["due_date"] == {
+        "tp": 1, "fp": 0, "fn": 1, "tn": 1,
+        "precision": 1.0, "recall": 0.5, "f1": 2 / 3,
+    }
+    macro_f1 = sum(metrics["f1"] for metrics in report["fields"].values()) / 5
+    assert report["summary"]["micro"]["f1"] != macro_f1
+    assert report["summary"]["exact_record_accuracy"] == 1 / 3
+
+
 @pytest.mark.parametrize(("expected", "actual", "precision", "recall", "f1"), [
     (NULL_RECORD, NULL_RECORD, None, None, None),
     (RECORD, NULL_RECORD, None, 0.0, 0.0),
@@ -131,6 +148,15 @@ def test_identifier_format_diff_preserves_values_and_document_evidence():
             "actual": [{"line": 1, "text": "invoice_id: 00127"}],
         },
     }]
+
+
+def test_identifier_classification_never_coerces_huge_ids_to_integers():
+    identifier = "7" * 5_000
+    expected = {**RECORD, "invoice_id": "000" + identifier}
+    actual = {**RECORD, "invoice_id": identifier}
+    report = evaluate(*artifacts([(expected, actual)]))
+    assert report["diffs"][0]["category"] == "identifier_format"
+    assert report["summary"]["critical_failure_count"] == 1
 
 
 @pytest.mark.parametrize("field,value", [("invoice_id", "00127-A"),

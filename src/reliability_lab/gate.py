@@ -75,6 +75,13 @@ def _compatible(baseline: dict, candidate: dict) -> None:
 
 def _apply_comparison(baseline: dict, candidate: dict) -> dict:
     _compatible(baseline, candidate)
+    depth = 1
+    ancestor = baseline
+    while "baseline" in ancestor["artifacts"]:
+        depth += 1
+        ancestor = ancestor["artifacts"]["baseline"]
+    if depth >= MAX_BASELINE_DEPTH:
+        raise InputError(f"comparison: baseline nesting exceeds {MAX_BASELINE_DEPTH} reports")
     policy = candidate["artifacts"]["policy"]
     checks = list(candidate["gate"]["checks"])
     for name, metric in (("micro_f1", "f1"), ("exact_record_accuracy", "exact_record_accuracy")):
@@ -160,7 +167,8 @@ def _validate_provenance(report: dict) -> None:
     timing = "fixture_evaluation" if report["mode"] == "synthetic_fixture" else "evaluation_only"
     _matches(provenance["timing_kind"], timing, "report.provenance.timing_kind")
     seconds = provenance["evaluation_seconds"]
-    if type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds < 0:
+    if (type(seconds) not in (int, float) or seconds < 0
+            or (type(seconds) is float and not math.isfinite(seconds))):
         raise InputError("report.provenance.evaluation_seconds: expected finite nonnegative number")
     revision = provenance["code_revision"]
     if revision is not None and (not isinstance(revision, str)
