@@ -15,3 +15,10 @@ normalization and thresholds. A candidate already compared with a baseline must
 be compared to that same baseline content, so re-comparison cannot silently
 replace the original rejection context. Rejecting JSON numeric overflow is input
 validation, not a change to extraction labels or metric definitions.
+
+An integration coverage audit found that the initial spec had omitted the user's
+duplicate-looking-document requirement. A separately checksummed two-case
+development supplement supplies that edge case. It was added after construction
+of the primary fixture files, before any demo scoring; it does not alter the
+original 60-case files, their manifest, the evaluation labels or the policy.
+This is a disclosed development coverage correction, not evaluation tuning.
