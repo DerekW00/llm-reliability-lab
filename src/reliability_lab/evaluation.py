@@ -48,7 +48,9 @@ def _code_provenance() -> tuple[str | None, bool | None]:
     try:
         root = Path(git("rev-parse", "--show-toplevel")).resolve()
         relative = source.relative_to(root)
-        git("ls-files", "--error-unmatch", "--", relative.as_posix())
+        # Git runs from the module directory; anchor the literal pathspec at
+        # the checkout root instead of interpreting it relative to that directory.
+        git("ls-files", "--error-unmatch", "--", f":(top,literal){relative.as_posix()}")
         revision = git("rev-parse", "HEAD")
         dirty = bool(git("status", "--porcelain", "--untracked-files=normal"))
     except (OSError, ValueError, subprocess.SubprocessError):
