@@ -27,3 +27,17 @@
   experience agent finished. No project server or model process.
 - Next: integrate frozen data/fixtures and evaluator boundary fix, run all exact
   quickstart commands, then launch a fresh reviewer in an isolated worktree.
+
+## 2026-09-11 — Full offline integration
+
+- Frozen primary data, all fixtures and development supplement integrated.
+- Baseline and repaired: exit 0, micro F1 .994535519125683, exact records 39/40,
+  zero critical failures. Regression: exit 1, micro F1 .9508196721311475, exact
+  records 31/40, eight critical identifier failures. Comparison preserves exit 1.
+- Complete suite: 180 passed; Ruff passed. Network-instrumented CLI runs outside
+  repository CWD passed without API credentials. Source and wheel build succeeded.
+- Primary data and original policy hashes unchanged. Development supplement
+  corrects the initial spec's coverage omission without evaluation tuning.
+- All three implementers finished; no project servers or model processes.
+- Next: fresh independent adversarial review and clean-environment quickstart,
+  then any confirmed fixes, final reports and commit/identity audit.
