@@ -1,5 +1,28 @@
 # Build status
 
+## Current state — complete, 2026-09-11 Pacific
+
+Mandatory offline acceptance is complete. Main contains the integrated build,
+fresh AI adversarial review and reproduced P2 provenance fix. Final runtime
+source is `9b1ec55`; saved reports identify that exact clean source revision.
+`FINAL_REPORT.md` records delivery history, exact commands, remaining limits and
+the morning review checklist. The delivery commit is the commit containing this
+checkpoint; resolve its full hash with `git rev-parse HEAD`.
+
+- Final combined-branch verification: **241 tests passed**, Ruff passed, source
+  and wheel built, independent wheel/console/offline checks passed.
+- Baseline/repaired pass; regression and its comparison return 1 as intended.
+- No unresolved confirmed implementation defects; EVAL-11 wording ambiguity is
+  documented as a label limitation. Primary frozen inputs and policy unchanged.
+- All four agents completed; no project application processes remain. Integrated
+  worktree cleanup is part of delivery; branch history is retained locally.
+- No live provider calls, remote CI runs, public writes, deployment or account changes.
+- Next command: `uv run reliability-lab demo --scenario regression` from this
+  directory (expected exit 1). Review README, policy and review findings before release.
+
+The dated entries below are historical checkpoints, including earlier incomplete
+states; they do not override the current completion state above.
+
 ## 2026-09-11 — Contract and scaffold
 
 - New local repository at `/Users/dw/llm-reliability-lab`, branch main.

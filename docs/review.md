@@ -265,7 +265,7 @@ labels, not independent human annotation or a semantic entailment test.
 | EVAL-37 | Endorsement explicitly identifies 000712 and GBP 712.07 |
 | EVAL-38 | Dollar sign alone cannot identify USD/CAD; currency null |
 | EVAL-39 | Current MPD-39 beats another supplier's old CUSTOMER-9 |
-| EVAL-40 | Legal-name punctuation and nv-Q 40 case are significant |
+| EVAL-40 | Legal-name punctuation and nv-Q40 case are significant |
 | DUPDEV-01 | Invoice 011842, otherwise matching companion slip |
 | DUPDEV-02 | Invoice 011843, distinct obligation despite visual similarity |
 
