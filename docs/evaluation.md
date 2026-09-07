@@ -90,9 +90,12 @@ attestation of what an external system produced.
 Code provenance looks up the tracked evaluator source file's Git checkout,
 independent of the caller's working directory and `GIT_*` overrides. Revision and
 dirty state are null when the module is installed without a tracked source
-checkout, including a wheel installed inside an unrelated repository. Git status
-includes untracked files. This records available source context; it is not a code
-integrity signature.
+checkout, including a wheel installed inside an unrelated repository, and also
+whenever the lookup itself is unavailable — Git absent, its metadata unreadable,
+or the short lookup timeout exceeded. Null therefore means "source context was
+not obtained", not specifically "no checkout exists"; evaluation still proceeds,
+because Git is not a runtime dependency. Git status includes untracked files.
+This records available source context; it is not a code integrity signature.
 
 `evaluation_seconds` measures local report construction and provenance collection,
 not inference or model latency, and excludes the additional comparison replay

@@ -36,9 +36,18 @@ atexit.register(save_guard_result)
 '''
 
 
+class CheckFailed(RuntimeError):
+    """A verification check failed. Not an assert: it must survive `python -O`."""
+
+
+def require(condition: object, message: object) -> None:
+    if not condition:
+        raise CheckFailed(str(message))
+
+
 def main() -> None:
     wheel = Path(sys.argv[1]).resolve()
-    assert wheel.is_file(), wheel
+    require(wheel.is_file(), wheel)
     (ROOT / "reports").mkdir(exist_ok=True)
     with (tempfile.TemporaryDirectory(prefix="review-wheel-", dir=ROOT / "reports") as nested,
           tempfile.TemporaryDirectory(prefix="review-outside-") as external):
@@ -51,7 +60,7 @@ def main() -> None:
         ):
             completed = subprocess.run(args, cwd=outside, capture_output=True, text=True)
             print(json.dumps({"command": args, "exit": completed.returncode}))
-            assert completed.returncode == 0, completed.stdout + completed.stderr
+            require(completed.returncode == 0, completed.stdout + completed.stderr)
         guard_dir = outside / "guard"
         guard_dir.mkdir()
         (guard_dir / "sitecustomize.py").write_text(GUARD)
@@ -71,13 +80,17 @@ def main() -> None:
              "'provenance':_code_provenance()}))"],
             cwd=outside, env=environment, capture_output=True, text=True,
         )
-        assert imported.returncode == 0, imported.stderr
+        require(imported.returncode == 0, imported.stderr)
         info = json.loads(imported.stdout)
-        assert str(env_path) in info["import"] and "site-packages" in info["import"]
-        assert str(env_path) in info["data"] and "site-packages" in info["data"]
-        assert info["provenance"] == [None, None], info
+        require(str(env_path) in info["import"] and "site-packages" in info["import"],
+                f"import did not come from the installed wheel: {info}")
+        require(str(env_path) in info["data"] and "site-packages" in info["data"],
+                f"bundled data did not come from the installed wheel: {info}")
+        require(info["provenance"] == [None, None], info)
         print(json.dumps({"wheel_import": info, "exit": imported.returncode}))
-        assert json.loads(guard_result.read_text()) == {"loaded": True, "network_attempts": []}
+        require(json.loads(guard_result.read_text(encoding="utf-8"))
+                == {"loaded": True, "network_attempts": []},
+                "network guard missing or a network call was attempted")
         out = outside / "reports"
         commands = [(["--help"], 0)]
         commands += [(["demo", "--scenario", scenario, "--output-dir", str(out)], expected)
@@ -94,14 +107,18 @@ def main() -> None:
                                        capture_output=True, text=True, timeout=30)
             print(json.dumps({"command": [cli, *args], "exit": completed.returncode,
                               "expected": expected}))
-            assert completed.returncode == expected, completed.stdout + completed.stderr
-            assert json.loads(guard_result.read_text()) == {"loaded": True, "network_attempts": []}
+            require(completed.returncode == expected, completed.stdout + completed.stderr)
+            require(json.loads(guard_result.read_text(encoding="utf-8"))
+                == {"loaded": True, "network_attempts": []},
+                "network guard missing or a network call was attempted")
         for name, accepted in (("baseline", True), ("regression", False), ("repaired", True),
                                ("comparison", False), ("evaluation", True)):
-            report = json.loads((out / f"{name}.json").read_text())
-            assert report["gate"]["accepted"] is accepted
-            assert report["provenance"]["code_revision"] is None
-            assert report["provenance"]["working_tree_dirty"] is None
+            report = json.loads((out / f"{name}.json").read_text(encoding="utf-8"))
+            require(report["gate"]["accepted"] is accepted, f"{name}: unexpected gate decision")
+            require(report["provenance"]["code_revision"] is None,
+                    f"{name}: a wheel install inherited a Git revision")
+            require(report["provenance"]["working_tree_dirty"] is None,
+                    f"{name}: a wheel install inherited a dirty-tree flag")
         print("PASS: wheel imports/resources, actual console entry point, credential-free "
               "socket/DNS instrumentation, and no unrelated Git provenance.")
 
