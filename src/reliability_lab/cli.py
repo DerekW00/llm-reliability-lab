@@ -83,7 +83,12 @@ def _present(report: dict, json_path: Path, markdown_path: Path, status: int) ->
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Return 0 for accepted quality, 1 for rejected quality, 2 for input/execution errors."""
+    """Return 0 for accepted quality, 1 for rejected quality, 2 for input/execution errors.
+
+    Unusable arguments and `--help` are handled by argparse before any of that, so an
+    in-process caller sees `SystemExit` there rather than a return value; the process
+    exit status is still 2 for a bad argument and 0 for `--help`.
+    """
     args = _parser().parse_args(argv)
     # Resolved from arguments alone so a failure while locating inputs can still
     # reserve, and clear, the output names this invocation would have written.
