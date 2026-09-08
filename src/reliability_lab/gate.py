@@ -96,14 +96,20 @@ def _apply_comparison(baseline: dict, candidate: dict) -> dict:
 
 
 def _json_tree(value: Any, *, path: str = "report", depth: int = 0,
-               active: set[int] | None = None, done: set[int] | None = None) -> None:
-    """Validate a supplied report as JSON, rejecting cycles and excessive nesting.
+               active: set[int] | None = None,
+               heights: dict[int, int] | None = None) -> int:
+    """Validate a supplied report as JSON and return the height of the walked value.
 
     Depth alone does not bound the work. A supplied Python object may reference the
     same acyclic child twice per level, which a plain walk re-visits 2**depth times
-    while staying far under MAX_JSON_DEPTH. Remembering the containers already
-    validated makes the cost linear in the number of distinct objects, so real
-    artifacts of any size stay accepted while that expansion cannot be provoked.
+    while staying far under MAX_JSON_DEPTH. Remembering each validated container
+    makes the cost linear in the number of distinct objects, so real artifacts of
+    any size stay accepted while that expansion cannot be provoked.
+
+    The cache stores a height rather than a bare "seen" mark, because the same
+    object can be reached again by a longer path: an alias first validated near the
+    root would otherwise smuggle its whole subtree past the nesting limit, and
+    whether a structure was rejected would depend on traversal order.
     """
     if depth > MAX_JSON_DEPTH:
         raise InputError(f"{path}: excessive JSON nesting")
@@ -113,31 +119,38 @@ def _json_tree(value: Any, *, path: str = "report", depth: int = 0,
                 value.encode("utf-8")
             except UnicodeError as exc:
                 raise InputError(f"{path}: invalid Unicode") from exc
-        return
+        return 0
     if type(value) is float:
         if not math.isfinite(value):
             raise InputError(f"{path}: non-finite number")
-        return
+        return 0
     if type(value) not in (dict, list):
         raise InputError(f"{path}: expected JSON value")
     active = set() if active is None else active
-    done = set() if done is None else done
+    heights = {} if heights is None else heights
     if id(value) in active:
         raise InputError(f"{path}: cyclic report")
-    if id(value) in done:
-        return
+    known = heights.get(id(value))
+    if known is not None:
+        # Same subtree, longer path: it must clear the limit from here too.
+        if depth + known > MAX_JSON_DEPTH:
+            raise InputError(f"{path}: excessive JSON nesting")
+        return known
     active.add(id(value))
+    height = 0
     try:
         items = value.items() if isinstance(value, dict) else enumerate(value)
         for key, item in items:
             if isinstance(value, dict) and type(key) is not str:
                 raise InputError(f"{path}: object key must be a string")
-            _json_tree(item, path=f"{path}.{key}", depth=depth + 1, active=active, done=done)
+            height = max(height, 1 + _json_tree(item, path=f"{path}.{key}", depth=depth + 1,
+                                                active=active, heights=heights))
     finally:
         active.remove(id(value))
     # Recorded only once the whole container validated, and only while every object
     # stays reachable from the caller's argument, so no id can be reused mid-walk.
-    done.add(id(value))
+    heights[id(value)] = height
+    return height
 
 
 def _keys(value: Any, keys: set[str], path: str) -> None:

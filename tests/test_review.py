@@ -644,6 +644,41 @@ def test_review_cycles_and_nesting_are_still_rejected_after_memoisation():
         _json_tree(deep)
 
 
+@pytest.mark.parametrize("order", ["shallow_alias_first", "long_path_first"])
+def test_review_nesting_limit_is_independent_of_traversal_order(order):
+    """A subtree validated near the root must not smuggle itself past the limit."""
+    from reliability_lab.gate import MAX_JSON_DEPTH, _json_tree
+
+    shared: object = {"leaf": 0}
+    for _ in range(100):
+        shared = {"child": shared}
+    deep: object = shared
+    for _ in range(40):
+        deep = {"child": deep}
+    assert 100 < MAX_JSON_DEPTH < 140, "the alias must be legal alone but not via the long path"
+    pair = ({"short": shared, "long": deep} if order == "shallow_alias_first"
+            else {"long": deep, "short": shared})
+    with pytest.raises(InputError, match="excessive JSON nesting"):
+        _json_tree(pair)
+    # The same alias on its own is within the limit and must still be accepted.
+    _json_tree({"short": shared})
+
+
+def test_review_nesting_limit_boundary_is_exact():
+    """Equality passes, one level deeper rejects — the same rule on either path."""
+    from reliability_lab.gate import MAX_JSON_DEPTH, _json_tree
+
+    def chain(levels):
+        node: object = 0
+        for _ in range(levels):
+            node = {"child": node}
+        return node
+
+    assert _json_tree(chain(MAX_JSON_DEPTH)) == MAX_JSON_DEPTH
+    with pytest.raises(InputError, match="excessive JSON nesting"):
+        _json_tree(chain(MAX_JSON_DEPTH + 1))
+
+
 def test_review_report_validation_imposes_no_artifact_size_limit():
     """SPEC bounds nesting, never artifact size; a large valid report must validate."""
     from reliability_lab.gate import _json_tree
