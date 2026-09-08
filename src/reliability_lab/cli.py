@@ -9,8 +9,15 @@ from pathlib import Path
 from typing import Sequence
 
 from .contracts import read_json
-from .reporting import clear_reports, render_report, report_paths, safe_text, write_reports
-from .resources import resource_path
+from .reporting import (
+    clear_reports,
+    clear_reports_only,
+    render_report,
+    report_paths,
+    safe_text,
+    write_reports,
+)
+from .resources import resource_candidates, resource_path
 
 
 def _demo_resources(scenario: str) -> list[Path]:
@@ -20,14 +27,18 @@ def _demo_resources(scenario: str) -> list[Path]:
     stop the others from being protected, because a failed lookup is not evidence the
     file is absent. The strict resolution in `main` still reports the real error.
     """
-    resolved = []
+    protected: list[Path] = []
     for relative in ("data/evaluation.json", f"data/predictions/{scenario}.json",
                      "policy.json", "data/predictions/baseline.json"):
         try:
-            resolved.append(resource_path(relative))
+            protected.extend(resource_candidates(relative))
+        except Exception:
+            pass
+        try:
+            protected.append(resource_path(relative))
         except Exception:
             continue
-    return resolved
+    return protected
 
 
 def _evaluate(*args: object, **kwargs: object) -> dict:
@@ -75,17 +86,21 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _discard_stdout() -> None:
-    """Stop the interpreter's exit-time flush from retrying a failed stdout write."""
+def _warn(message: str) -> None:
+    """Emit a diagnostic. A diagnostic must never become the run's outcome."""
     try:
-        with open(os.devnull, "w") as sink:
-            os.dup2(sink.fileno(), sys.stdout.fileno())
-    except (OSError, ValueError):
+        if sys.stderr is not None:
+            sys.stderr.write(f"{message}\n")
+            sys.stderr.flush()
+    except (OSError, UnicodeError, ValueError):
         pass
 
 
 def _present(report: dict, json_path: Path, markdown_path: Path, status: int) -> int:
     """Display a published report. A display failure never unpublishes it."""
+    if sys.stdout is None:
+        # The process was started with the descriptor closed; there is nowhere to show it.
+        return status
     text = (f"{render_report(report)}\n"
             f"JSON: {safe_text(json_path.resolve())}\n"
             f"Markdown: {safe_text(markdown_path.resolve())}\n")
@@ -93,9 +108,7 @@ def _present(report: dict, json_path: Path, markdown_path: Path, status: int) ->
         sys.stdout.write(text)
         sys.stdout.flush()
     except (OSError, UnicodeError, ValueError) as exc:
-        _discard_stdout()
-        print(f"Warning: the report was published but could not be displayed: {safe_text(exc)}",
-              file=sys.stderr)
+        _warn(f"Warning: the report was published but could not be displayed: {safe_text(exc)}")
     return status
 
 
@@ -164,14 +177,62 @@ def main(argv: Sequence[str] | None = None) -> int:
         cleanup_note = ""
         if outputs is not None:
             try:
-                clear_reports(outputs)
+                clear_reports_only(outputs)
             except OSError as cleanup_error:
                 cleanup_note = f" Could not remove old outputs: {safe_text(cleanup_error)}."
-        print(f"Error: {safe_text(exc)}\nNo fresh report was produced.{cleanup_note}", file=sys.stderr)
+        _warn(f"Error: {safe_text(exc)}\nNo fresh report was produced.{cleanup_note}")
         return 2
     # Publication is complete and irreversible from here; only display can still fail.
     return _present(report, json_path, markdown_path, status)
 
 
+def _detach(descriptor: int) -> None:
+    """Point a descriptor at the null device so a pending flush can complete.
+
+    `os.open` hands back the lowest free descriptor, which is the one just closed
+    when a caller did `1>&-`; closing that as a stray would undo the repair.
+    """
+    try:
+        sink = os.open(os.devnull, os.O_WRONLY)
+    except OSError:
+        return
+    try:
+        if sink != descriptor:
+            os.dup2(sink, descriptor)
+    except OSError:
+        pass
+    finally:
+        if sink != descriptor:
+            try:
+                os.close(sink)
+            except OSError:
+                pass
+
+
+def run(argv: Sequence[str] | None = None) -> int:
+    """Console-script entry point: `main`, plus the stream care only a process may take.
+
+    A reader that hung up makes the interpreter's exit-time flush raise, which would
+    replace the verdict with status 120. Detaching a descriptor is a process-wide act,
+    so it belongs here and never inside the importable `main`.
+    """
+    try:
+        return main(argv)
+    finally:
+        # Also runs when argparse exits: `--help` and an unusable argument have their
+        # own statuses, and a hung-up reader must not turn either into 120 either.
+        for stream, descriptor in ((sys.stdout, 1), (sys.stderr, 2)):
+            if stream is None:
+                continue
+            try:
+                stream.flush()
+            except (OSError, ValueError):
+                _detach(descriptor)
+                try:
+                    stream.flush()
+                except (OSError, ValueError):
+                    pass
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run())

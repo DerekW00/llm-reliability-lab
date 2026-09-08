@@ -17,15 +17,15 @@ from .contracts import FIELDS, InputError
 def safe_text(value: object) -> str:
     """Make supplied text inert in a terminal, including ANSI and bidi controls.
 
-    Escapes are unambiguous: a fixed width per prefix, and a literal backslash is
-    escaped too, so distinct inputs never render as the same inspectable text.
+    Each escape has a fixed width for its prefix, so an escaped astral character
+    can no longer be read as a shorter escape followed by a hex digit. Backslash
+    escaping is left to the Markdown layer, which keeps a backslash in a document
+    rendering as one backslash.
     """
     pieces = []
     for char in str(value):
         code = ord(char)
-        if char == "\\":
-            pieces.append("\\\\")
-        elif unicodedata.category(char).startswith("C") or char in "\u2028\u2029":
+        if unicodedata.category(char).startswith("C") or char in "\u2028\u2029":
             if code <= 0xFF:
                 pieces.append(f"\\x{code:02x}")
             elif code <= 0xFFFF:
@@ -51,7 +51,9 @@ def _seconds(value: object) -> str:
     try:
         return f"{float(value):.6f}"
     except (OverflowError, TypeError, ValueError):
-        return safe_text(value)
+        # Anything not formattable as a float is supplied text, so it is escaped
+        # like every other supplied value rather than written into the Markdown raw.
+        return _md(value)
 
 
 def _rate(value: float | None, numerator: int, denominator: int) -> str:
@@ -240,6 +242,37 @@ def clear_reports(paths: Iterable[Path]) -> None:
     """Discard output names reserved by this invocation, including stale passes."""
     for path in paths:
         path.unlink(missing_ok=True)
+
+
+def _has_report_shape(path: Path) -> bool:
+    """Whether a file has the shape this tool's own output has.
+
+    Reports are unsigned, so this cannot establish who wrote a file and does not
+    try to. It is a conservative filter only: anything without that shape is left
+    alone instead of deleted.
+    """
+    try:
+        if path.suffix == ".md":
+            with path.open(encoding="utf-8") as handle:
+                return handle.readline().startswith("# LLM Reliability Lab")
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError):
+        return False
+    provenance = payload.get("provenance") if isinstance(payload, dict) else None
+    return (isinstance(provenance, dict) and payload.get("report_version") == 1
+            and provenance.get("live_calls") is False)
+
+
+def clear_reports_only(paths: Iterable[Path]) -> None:
+    """Discard a failed run's reserved outputs, skipping anything report-shaped it is not.
+
+    Ordinary replacement of a named output is unchanged and still unconditional; this
+    narrower form is for cleanup after a failure, where the inputs may not all be known
+    and deleting a file that is not a report is the worse outcome of the two.
+    """
+    for path in paths:
+        if _has_report_shape(path):
+            path.unlink(missing_ok=True)
 
 
 def write_reports(

@@ -10,6 +10,13 @@ errors is appropriate for demonstrating an invoice gate; it does not establish
 that a real system with zero observed errors is risk-free. Forty synthetic
 evaluation cases cannot estimate deployment error rates or cover every invoice.
 
+The freeze records commit ordering, not authoring independence: the corpus was
+written for this demonstration by the same effort that planned the fixture
+scenarios, and `EVAL-02`'s rationale names the planned noncritical supplier error
+outright. That label is still exactly what its own document says on the cited line,
+and `docs/dataset.md` already states these are not independently annotated research
+labels and not a blind held-out benchmark.
+
 Specification clarifications after the initial freeze preserve the original
 normalization and thresholds. A candidate already compared with a baseline must
 be compared to that same baseline content, so re-comparison cannot silently

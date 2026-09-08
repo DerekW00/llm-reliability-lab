@@ -29,7 +29,7 @@ raise SystemExit(main())
 # The child needs only enough environment to locate an interpreter, Git and a
 # temporary directory. An allowlist keeps unrelated provider credentials out;
 # a name denylist cannot, because most credential names are unpredictable.
-PASSTHROUGH = ("PATH", "HOME", "TMPDIR", "SYSTEMROOT", "COMSPEC")
+PASSTHROUGH = ("PATH", "HOME", "TMPDIR", "SYSTEMROOT", "COMSPEC", "PYTHONPATH")
 
 
 class CheckFailed(RuntimeError):
