@@ -14,11 +14,6 @@ from .contracts import FIELDS, InputError, fingerprint
 # Bound replay cost and reject recursive Python objects before copying them.
 MAX_BASELINE_DEPTH = 16
 MAX_JSON_DEPTH = 128
-# Depth alone does not bound work: a supplied Python object may reference the same
-# acyclic child twice per level, which the walk re-visits 2**depth times while
-# staying far under MAX_JSON_DEPTH. The deepest legitimate report measures about
-# thirty thousand nodes, so this leaves ample headroom.
-MAX_JSON_NODES = 1_000_000
 
 
 def _metric_fraction(report: dict, metric: str, field: str | None = None) -> Fraction | None:
@@ -101,13 +96,17 @@ def _apply_comparison(baseline: dict, candidate: dict) -> dict:
 
 
 def _json_tree(value: Any, *, path: str = "report", depth: int = 0,
-               active: set[int] | None = None, budget: list[int] | None = None) -> None:
+               active: set[int] | None = None, done: set[int] | None = None) -> None:
+    """Validate a supplied report as JSON, rejecting cycles and excessive nesting.
+
+    Depth alone does not bound the work. A supplied Python object may reference the
+    same acyclic child twice per level, which a plain walk re-visits 2**depth times
+    while staying far under MAX_JSON_DEPTH. Remembering the containers already
+    validated makes the cost linear in the number of distinct objects, so real
+    artifacts of any size stay accepted while that expansion cannot be provoked.
+    """
     if depth > MAX_JSON_DEPTH:
         raise InputError(f"{path}: excessive JSON nesting")
-    budget = [MAX_JSON_NODES] if budget is None else budget
-    budget[0] -= 1
-    if budget[0] < 0:
-        raise InputError(f"{path}: report exceeds {MAX_JSON_NODES} values to validate")
     if value is None or type(value) in (str, int, bool):
         if isinstance(value, str):
             try:
@@ -122,18 +121,23 @@ def _json_tree(value: Any, *, path: str = "report", depth: int = 0,
     if type(value) not in (dict, list):
         raise InputError(f"{path}: expected JSON value")
     active = set() if active is None else active
+    done = set() if done is None else done
     if id(value) in active:
         raise InputError(f"{path}: cyclic report")
+    if id(value) in done:
+        return
     active.add(id(value))
     try:
         items = value.items() if isinstance(value, dict) else enumerate(value)
         for key, item in items:
             if isinstance(value, dict) and type(key) is not str:
                 raise InputError(f"{path}: object key must be a string")
-            _json_tree(item, path=f"{path}.{key}", depth=depth + 1, active=active,
-                       budget=budget)
+            _json_tree(item, path=f"{path}.{key}", depth=depth + 1, active=active, done=done)
     finally:
         active.remove(id(value))
+    # Recorded only once the whole container validated, and only while every object
+    # stays reachable from the caller's argument, so no id can be reused mid-walk.
+    done.add(id(value))
 
 
 def _keys(value: Any, keys: set[str], path: str) -> None:

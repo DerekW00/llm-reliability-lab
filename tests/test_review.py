@@ -12,6 +12,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -613,27 +614,59 @@ def test_review_oversized_duration_renders_instead_of_crashing():
 
 
 def test_review_shared_report_references_do_not_explode_replay_cost():
-    """The depth cap bounds path length; only a work budget bounds total effort."""
+    """A shared acyclic child must be validated once, not once per path reaching it."""
     from reliability_lab.gate import MAX_JSON_DEPTH, _json_tree
 
     node = {"leaf": 1}
-    for _ in range(40):
+    for _ in range(120):
         node = {"x": node, "y": node}
-    assert 40 < MAX_JSON_DEPTH
-    with pytest.raises(InputError, match="values to validate"):
-        _json_tree(node)
+    assert 120 < MAX_JSON_DEPTH, "the structure must stay inside the nesting limit"
+    started = time.perf_counter()
+    _json_tree(node)
+    # An unmemoised walk visits 2**120 nodes here; a memoised one visits 121.
+    assert time.perf_counter() - started < 1.0
 
 
-def test_review_deepest_legitimate_comparison_chain_still_validates():
-    """The budget must not reject a report the tool itself can produce."""
-    from reliability_lab.gate import MAX_JSON_NODES, _json_tree
+def test_review_cycles_and_nesting_are_still_rejected_after_memoisation():
+    """Remembering validated containers must not weaken the two real guards."""
+    from reliability_lab.gate import MAX_JSON_DEPTH, _json_tree
+
+    cyclic: dict = {}
+    cyclic["self"] = cyclic
+    with pytest.raises(InputError, match="cyclic report"):
+        _json_tree(cyclic)
+    deep: dict = {}
+    cursor = deep
+    for _ in range(MAX_JSON_DEPTH + 40):
+        cursor["next"] = {}
+        cursor = cursor["next"]
+    with pytest.raises(InputError, match="excessive JSON nesting"):
+        _json_tree(deep)
+
+
+def test_review_report_validation_imposes_no_artifact_size_limit():
+    """SPEC bounds nesting, never artifact size; a large valid report must validate."""
+    from reliability_lab.gate import _json_tree
+
+    # Comfortably larger than any fixed cap a nesting guard might be tempted to add.
+    large = {"cases": [{"case_id": f"CHECK-{index}", "value": index}
+                       for index in range(400_000)]}
+    _json_tree(large)
+
+
+def test_review_nested_comparison_chain_validates_at_the_supported_depth():
+    """Reports the tool itself produces by chaining comparisons must stay replayable."""
+    from reliability_lab.gate import MAX_BASELINE_DEPTH, _json_tree, _recompute_report
 
     dataset, supplied, policy = inputs()
     chain = evaluate(dataset, supplied, policy)
-    for _ in range(4):
+    levels = 0
+    while levels < MAX_BASELINE_DEPTH - 2:
         chain = evaluate(dataset, supplied, policy, baseline=chain)
+        levels += 1
+    assert levels == MAX_BASELINE_DEPTH - 2
     _json_tree(chain)
-    assert MAX_JSON_NODES > 100_000
+    assert _recompute_report(chain)["gate"]["accepted"]
 
 
 def test_review_baseline_argument_help_names_the_artifact_it_wants(capsys):
@@ -686,3 +719,56 @@ def test_review_frozen_artifact_fingerprints_are_unchanged():
     }
     for relative, prefix in expected.items():
         assert fingerprint(read_json(ROOT / relative)).startswith(prefix), relative
+
+
+@pytest.mark.parametrize("error", [
+    InputError("Missing bundled resource"),
+    PermissionError("simulated unreadable resource path"),
+    OSError("simulated lookup failure"),
+])
+@pytest.mark.parametrize("broken", ["data/evaluation.json", "policy.json"])
+def test_review_failed_resource_lookup_never_deletes_a_surviving_input(
+    tmp_path, monkeypatch, error, broken,
+):
+    """Clearing a reserved output must never be paid for with an input file.
+
+    A lookup can fail without the file being absent, so no resolution error at any
+    position may drop a sibling input out of the collision-protection set.
+    """
+    from reliability_lab import cli as cli_module
+    from reliability_lab.resources import resource_path
+
+    victim = tmp_path / "baseline.json"
+    victim.write_bytes(resource_path("data/predictions/baseline.json").read_bytes())
+    dataset = tmp_path / "dataset.json"
+    dataset.write_bytes(resource_path("data/evaluation.json").read_bytes())
+    policy = tmp_path / "policy.json"
+    policy.write_bytes(resource_path("policy.json").read_bytes())
+    before = victim.read_bytes()
+    available = {"data/evaluation.json": dataset, "policy.json": policy,
+                 "data/predictions/baseline.json": victim}
+
+    def partly_available(relative):
+        if relative == broken:
+            raise error
+        return available[relative]
+
+    monkeypatch.setattr(cli_module, "resource_path", partly_available)
+    # The output stem collides with the prediction input living in the same directory.
+    assert cli_module.main(["demo", "--scenario", "baseline", "--output-dir", str(tmp_path)]) == 2
+    assert victim.is_file()
+    assert victim.read_bytes() == before
+
+
+def test_review_empty_report_name_is_rejected_not_renamed(tmp_path):
+    """An unsafe stem must fail closed, never fall back to another report's name."""
+    from reliability_lab import cli as cli_module
+
+    out = tmp_path / "out"
+    status = cli_module.main([
+        "evaluate", "--dataset", str(ROOT / "data/evaluation.json"),
+        "--predictions", str(ROOT / "data/predictions/baseline.json"),
+        "--policy", str(ROOT / "policy.json"), "--output-dir", str(out), "--name", "",
+    ])
+    assert status == 2
+    assert not out.exists() or list(out.iterdir()) == []

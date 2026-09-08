@@ -13,6 +13,23 @@ from .reporting import clear_reports, render_report, report_paths, safe_text, wr
 from .resources import resource_path
 
 
+def _demo_resources(scenario: str) -> list[Path]:
+    """Locate every bundled demo input that can be located, for collision protection.
+
+    Best-effort by design: one resource failing to resolve, for any reason, must not
+    stop the others from being protected, because a failed lookup is not evidence the
+    file is absent. The strict resolution in `main` still reports the real error.
+    """
+    resolved = []
+    for relative in ("data/evaluation.json", f"data/predictions/{scenario}.json",
+                     "policy.json", "data/predictions/baseline.json"):
+        try:
+            resolved.append(resource_path(relative))
+        except Exception:
+            continue
+    return resolved
+
+
 def _evaluate(*args: object, **kwargs: object) -> dict:
     from .evaluation import evaluate
 
@@ -92,12 +109,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     # Resolved from arguments alone so a failure while locating inputs can still
     # reserve, and clear, the output names this invocation would have written.
-    name = {"demo": getattr(args, "scenario", None),
-            "evaluate": getattr(args, "name", None)}.get(args.command) or "comparison"
+    # Taken verbatim, including an empty --name, which report_paths must reject.
+    if args.command == "demo":
+        name = args.scenario
+    elif args.command == "evaluate":
+        name = args.name
+    else:
+        name = "comparison"
     outputs: tuple[Path, Path] | None = None
     inputs: list[Path] = []
     try:
         if args.command == "demo":
+            # Protect what exists before any strict lookup can abort the run.
+            inputs = _demo_resources(name)
             dataset_path = resource_path("data/evaluation.json")
             predictions_path = resource_path(f"data/predictions/{name}.json")
             policy_path = resource_path("policy.json")
