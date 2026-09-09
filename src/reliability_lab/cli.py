@@ -177,8 +177,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         cleanup_note = ""
         if outputs is not None:
             try:
-                clear_reports_only(outputs)
-            except OSError as cleanup_error:
+                retained = clear_reports_only(outputs)
+                if retained:
+                    kept = ", ".join(safe_text(path) for path in retained)
+                    cleanup_note = (" These reserved outputs were left in place, because they "
+                                    f"are not recognisable as reports written here: {kept}.")
+            except Exception as cleanup_error:
+                # Cleanup is best effort; a failure here reports itself but must
+                # never replace the execution error that is the run's real result.
                 cleanup_note = f" Could not remove old outputs: {safe_text(cleanup_error)}."
         _warn(f"Error: {safe_text(exc)}\nNo fresh report was produced.{cleanup_note}")
         return 2

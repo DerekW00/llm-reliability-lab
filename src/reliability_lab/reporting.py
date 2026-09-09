@@ -17,10 +17,14 @@ from .contracts import FIELDS, InputError
 def safe_text(value: object) -> str:
     """Make supplied text inert in a terminal, including ANSI and bidi controls.
 
-    Each escape has a fixed width for its prefix, so an escaped astral character
-    can no longer be read as a shorter escape followed by a hex digit. Backslash
-    escaping is left to the Markdown layer, which keeps a backslash in a document
-    rendering as one backslash.
+    Each escape has a fixed width for its prefix, so an escaped astral character can
+    no longer be read as a shorter escape followed by a hex digit.
+
+    Known limit: a real control character and the literal text of its escape still
+    render alike here, because escaping the backslash as well would double every
+    ordinary backslash in a quoted document. Where that distinction matters the
+    report uses JSON notation instead, via `_value`, which is injective and parses
+    back to the value shown.
     """
     pieces = []
     for char in str(value):
@@ -43,7 +47,14 @@ def _md(value: object) -> str:
 
 
 def _value(value: object) -> str:
-    return _md(json.dumps(value, ensure_ascii=False, allow_nan=False, sort_keys=True))
+    """Show a value in JSON notation that still parses back to the value shown.
+
+    `ensure_ascii=True` matters: JSON has no `\\U` escape, so leaving an astral
+    character raw here and letting safe_text rewrite it would print a "JSON literal"
+    no JSON parser accepts. Escaping inside the encoder keeps the notation valid and
+    keeps distinct inputs distinct.
+    """
+    return _md(json.dumps(value, ensure_ascii=True, allow_nan=False, sort_keys=True))
 
 
 def _seconds(value: object) -> str:
@@ -244,35 +255,51 @@ def clear_reports(paths: Iterable[Path]) -> None:
         path.unlink(missing_ok=True)
 
 
-def _has_report_shape(path: Path) -> bool:
-    """Whether a file has the shape this tool's own output has.
+def _has_report_shape(path: Path) -> bool | None:
+    """Whether a file has the shape this tool's own output has, or None if unreadable.
 
     Reports are unsigned, so this cannot establish who wrote a file and does not
-    try to. It is a conservative filter only: anything without that shape is left
-    alone instead of deleted.
+    try to. It is a filter, not evidence: readable content that is not a report is
+    somebody's writing. Being unable to read the file is a third answer, because
+    "I could not look" is not the same as "I looked and it was not a report".
     """
     try:
         if path.suffix == ".md":
             with path.open(encoding="utf-8") as handle:
-                return handle.readline().startswith("# LLM Reliability Lab")
+                opening = [handle.readline() for _ in range(3)]
+            # The whole heading, not a prefix: a note titled "# LLM Reliability Lab
+            # meeting notes" is somebody's writing, not a rendered report.
+            return (opening[0].rstrip("\n") == "# LLM Reliability Lab"
+                    and opening[2].rstrip("\n") in ("**SYNTHETIC FIXTURE EVALUATION**",
+                                                    "**EXTERNAL PREDICTION EVALUATION**"))
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, ValueError):
-        return False
+    except (OSError, RecursionError, UnicodeError, ValueError):
+        # Undecodable content and an unreadable file are both "could not look", and
+        # neither may escape as an exception from a best-effort cleanup.
+        return None
     provenance = payload.get("provenance") if isinstance(payload, dict) else None
     return (isinstance(provenance, dict) and payload.get("report_version") == 1
             and provenance.get("live_calls") is False)
 
 
-def clear_reports_only(paths: Iterable[Path]) -> None:
-    """Discard a failed run's reserved outputs, skipping anything report-shaped it is not.
+def clear_reports_only(paths: Iterable[Path]) -> list[Path]:
+    """Remove a failed run's reserved outputs that are recognisably this tool's reports.
 
-    Ordinary replacement of a named output is unchanged and still unconditional; this
-    narrower form is for cleanup after a failure, where the inputs may not all be known
-    and deleting a file that is not a report is the worse outcome of the two.
+    Removal here is best effort, and deliberately so. Content that reads as one of this
+    tool's reports is a stale verdict and goes. Anything else is left where it is —
+    somebody's writing, or a file that could not be read at all, and deleting a file
+    nobody can identify is the worse mistake of the two. Returns whatever was left, so
+    the caller can say so rather than let a retained output pass unmentioned.
+
+    Ordinary replacement of a named output on the success path is unchanged.
     """
+    retained = []
     for path in paths:
-        if _has_report_shape(path):
+        if _has_report_shape(path) is True:
             path.unlink(missing_ok=True)
+        elif path.exists():
+            retained.append(path)
+    return retained
 
 
 def write_reports(

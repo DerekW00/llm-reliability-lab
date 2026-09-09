@@ -11,6 +11,8 @@ import copy
 import hashlib
 import json
 import os
+import re
+import shlex
 import subprocess
 import sys
 import time
@@ -326,7 +328,7 @@ def test_review_checkout_provenance_is_actual_tracked_revision():
 
 
 def invoke(args, cwd):
-    environment = {"PATH": os.environ["PATH"], "LANG": "en_US.UTF-8"}
+    environment = child_environment()
     return subprocess.run([sys.executable, "-m", "reliability_lab.cli", *args],
                           cwd=cwd, env=environment, capture_output=True, text=True, timeout=30)
 
@@ -476,6 +478,27 @@ def test_review_duplicate_looking_cases_are_two_independent_obligations():
 # passes on every revision.
 
 
+def child_environment(**extra):
+    """Environment for a CLI child process in these tests.
+
+    PYTHONPATH names the checkout under review on purpose. Without it the child
+    imports whatever `reliability_lab` happens to be installed, so a regression test
+    replayed against another revision would exercise the installed copy and pass
+    while the revision under test stayed broken.
+    """
+    environment = {"PATH": os.environ["PATH"], "LANG": "en_US.UTF-8",
+                   "PYTHONPATH": str(ROOT / "src")}
+    environment.update(extra)
+    return environment
+
+
+def test_review_subprocess_tests_exercise_the_checkout_under_review():
+    """Guards the guards: prove the child imports this source, not an installed copy."""
+    result = subprocess.run(
+        [sys.executable, "-c", "import reliability_lab; print(reliability_lab.__file__)"],
+        env=child_environment(), capture_output=True, text=True, timeout=60)
+    assert result.stdout.strip() == str(ROOT / "src/reliability_lab/__init__.py"), result.stdout
+
 def test_review_display_failure_keeps_published_report_and_says_so(tmp_path):
     """Publication is irreversible; only display can still fail after it."""
     dataset, supplied, policy = inputs()
@@ -485,7 +508,7 @@ def test_review_display_failure_keeps_published_report_and_says_so(tmp_path):
     args = ["evaluate", "--dataset", str(tmp_path / "d.json"),
             "--predictions", str(tmp_path / "p.json"), "--policy", str(tmp_path / "pol.json"),
             "--output-dir", str(tmp_path / "out"), "--name", "published"]
-    environment = {"PATH": os.environ["PATH"], "LANG": "en_US.UTF-8", "PYTHONIOENCODING": "ascii"}
+    environment = child_environment(PYTHONIOENCODING="ascii")
     result = subprocess.run([sys.executable, "-m", "reliability_lab.cli", *args], cwd=tmp_path,
                             env=environment, capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, (result.stdout, result.stderr)
@@ -513,7 +536,7 @@ def test_review_in_process_run_leaves_the_callers_stdout_usable(tmp_path):
         "print('HOST STILL SPEAKS', status)\n"
     )
     result = subprocess.run([sys.executable, "-c", probe], cwd=tmp_path,
-                            env={"PATH": os.environ["PATH"], "LANG": "en_US.UTF-8"},
+                            env=child_environment(),
                             capture_output=True, text=True, timeout=60)
     assert "HOST STILL SPEAKS 0" in result.stdout, (result.stdout, result.stderr)
 
@@ -525,7 +548,7 @@ def test_review_verdict_survives_a_hung_up_reader(tmp_path, scenario, expected):
     process = subprocess.Popen(
         [sys.executable, "-m", "reliability_lab.cli", "demo", "--scenario", scenario,
          "--output-dir", str(out)],
-        cwd=tmp_path, env={"PATH": os.environ["PATH"], "LANG": "en_US.UTF-8"},
+        cwd=tmp_path, env=child_environment(),
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     process.stdout.close()
     process.communicate(timeout=60)
@@ -541,7 +564,7 @@ def test_review_verdict_survives_a_shared_hung_up_stream(tmp_path, scenario, exp
     process = subprocess.Popen(
         [sys.executable, "-m", "reliability_lab.cli", "demo", "--scenario", scenario,
          "--output-dir", str(out)],
-        cwd=tmp_path, env={"PATH": os.environ["PATH"], "LANG": "en_US.UTF-8"},
+        cwd=tmp_path, env=child_environment(),
         stdout=write_end, stderr=write_end)
     os.close(write_end)
     os.close(read_end)
@@ -555,9 +578,9 @@ def test_review_verdict_survives_a_closed_stdout_descriptor(tmp_path, scenario, 
     """`1>&-` leaves sys.stdout as None; the verdict must still be the exit status."""
     out = tmp_path / "closed"
     result = subprocess.run(
-        f"{sys.executable} -m reliability_lab.cli demo --scenario {scenario} "
-        f"--output-dir {out} 1>&- 2>/dev/null",
-        shell=True, cwd=tmp_path, env={"PATH": os.environ["PATH"], "LANG": "en_US.UTF-8"})
+        f"{shlex.quote(sys.executable)} -m reliability_lab.cli demo --scenario {scenario} "
+        f"--output-dir {shlex.quote(str(out))} 1>&- 2>/dev/null",
+        shell=True, cwd=tmp_path, env=child_environment())
     assert result.returncode == expected
     assert (out / f"{scenario}.json").is_file()
 
@@ -600,10 +623,14 @@ def test_review_failed_resource_lookup_never_deletes_a_surviving_input(
     victim = tmp_path / f"{scenario}.json"
     victim.write_bytes(resource_path(f"data/predictions/{scenario}.json").read_bytes())
     before = victim.read_bytes()
+    other = tmp_path / "bundled-baseline.json"
+    other.write_bytes(resource_path("data/predictions/baseline.json").read_bytes())
     available = {"data/evaluation.json": tmp_path / "dataset.json",
                  "policy.json": tmp_path / "policy.json",
                  f"data/predictions/{scenario}.json": victim,
-                 "data/predictions/baseline.json": victim}
+                 # A distinct path, so the baseline lookup cannot stand in for the
+                 # scenario's own and hide a hole in the protection set.
+                 "data/predictions/baseline.json": other}
     (tmp_path / "dataset.json").write_bytes(resource_path("data/evaluation.json").read_bytes())
     (tmp_path / "policy.json").write_bytes(resource_path("policy.json").read_bytes())
 
@@ -956,14 +983,21 @@ def test_review_report_validation_imposes_no_artifact_size_limit():
     _json_tree(large)
 
 
-def test_review_nested_comparison_chain_validates_at_the_supported_depth():
-    """Reports the tool itself produces by chaining comparisons must stay replayable."""
+def test_review_a_chain_of_comparisons_stays_replayable():
+    """Reports the tool itself produces by chaining comparisons must stay replayable.
+
+    Four levels, not the supported sixteen: each added level re-derives the whole
+    chain, so the full depth costs minutes. The depth limit itself is covered by
+    `tests/test_gate.py`'s nesting tests.
+    """
     from reliability_lab.gate import MAX_BASELINE_DEPTH, _json_tree, _recompute_report
 
     dataset, supplied, policy = inputs()
     chain = evaluate(dataset, supplied, policy)
-    for _ in range(MAX_BASELINE_DEPTH - 12):
+    levels = 4
+    for _ in range(levels):
         chain = evaluate(dataset, supplied, policy, baseline=chain)
+    assert levels < MAX_BASELINE_DEPTH
     _json_tree(chain)
     assert _recompute_report(chain)["gate"]["accepted"]
 
@@ -986,3 +1020,256 @@ def test_review_interrupted_publication_leaves_no_half_written_pair(tmp_path, mo
     with pytest.raises(KeyboardInterrupt):
         reporting.write_reports(report, tmp_path, "interrupted")
     assert sorted(path.name for path in tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("content", [
+    # Exact heading, but nothing a rendered report ever says next.
+    "# LLM Reliability Lab\n\nPrivate decisions to keep.\n",
+    # A report's second marker line, under a heading that is only a prefix match.
+    "# LLM Reliability Lab meeting notes\n\n**SYNTHETIC FIXTURE EVALUATION**\n",
+    # Neither.
+    "# LLM Reliability Lab meeting notes\n\nPrivate decisions to keep.\n",
+])
+def test_review_failure_cleanup_spares_notes_that_merely_resemble_a_report(
+    tmp_path, monkeypatch, content,
+):
+    """Each half of the shape check must independently refuse somebody's writing."""
+    from reliability_lab import cli as cli_module
+
+    notes = tmp_path / "baseline.md"
+    notes.write_text(content, encoding="utf-8")
+    before = notes.read_bytes()
+
+    def unavailable(relative):
+        raise InputError(f"Missing bundled resource: {relative}")
+
+    monkeypatch.setattr(cli_module, "resource_path", unavailable)
+    assert cli_module.main(["demo", "--scenario", "baseline", "--output-dir", str(tmp_path)]) == 2
+    assert notes.read_bytes() == before
+
+
+def test_review_failure_cleanup_survives_undecodable_report_content(tmp_path, monkeypatch):
+    """Content the decoder cannot walk is a third answer, not an escaping exception."""
+    from reliability_lab import cli as cli_module
+    from reliability_lab.reporting import _has_report_shape
+
+    unreadable = tmp_path / "baseline.json"
+    unreadable.write_text("[" * 10_000 + "0" + "]" * 10_000, encoding="utf-8")
+
+    def unavailable(relative):
+        raise InputError(f"Missing bundled resource: {relative}")
+
+    before = unreadable.read_bytes()
+    # "Could not look" is neither True nor False, and it must never raise.
+    assert _has_report_shape(unreadable) is None
+    monkeypatch.setattr(cli_module, "resource_path", unavailable)
+    assert cli_module.main(["demo", "--scenario", "baseline", "--output-dir", str(tmp_path)]) == 2
+    assert unreadable.read_bytes() == before
+
+
+def test_review_a_retained_output_is_named_rather_than_passed_over(tmp_path, monkeypatch, capsys):
+    """Removal is best effort, so anything kept must be said out loud, not implied."""
+    from reliability_lab import cli as cli_module
+
+    out = tmp_path / "reports"
+    assert cli_module.main(["demo", "--scenario", "baseline", "--output-dir", str(out)]) == 0
+    for published in out.iterdir():
+        os.chmod(published, 0)
+    capsys.readouterr()
+
+    def unavailable(relative):
+        raise InputError(f"Missing bundled resource: {relative}")
+
+    monkeypatch.setattr(cli_module, "resource_path", unavailable)
+    assert cli_module.main(["demo", "--scenario", "baseline", "--output-dir", str(out)]) == 2
+    message = capsys.readouterr().err
+    # Unreadable is not "not a report": deleting a file nobody can identify is worse.
+    assert sorted(path.name for path in out.iterdir()) == ["baseline.json", "baseline.md"]
+    assert "left in place" in message
+    assert "baseline.json" in message and "baseline.md" in message
+
+
+def test_review_a_failing_cleanup_never_replaces_the_execution_status(tmp_path, monkeypatch):
+    """Cleanup is best effort; whatever it raises, the run's real result stands."""
+    from reliability_lab import cli as cli_module
+
+    def unavailable(relative):
+        raise InputError(f"Missing bundled resource: {relative}")
+
+    def cleanup_explodes(paths):
+        raise RecursionError("cleanup blew up in a way OSError does not cover")
+
+    monkeypatch.setattr(cli_module, "resource_path", unavailable)
+    monkeypatch.setattr(cli_module, "clear_reports_only", cleanup_explodes)
+    assert cli_module.main(["demo", "--scenario", "baseline", "--output-dir", str(tmp_path)]) == 2
+
+
+def test_review_failure_cleanup_still_removes_a_real_stale_report(tmp_path, monkeypatch):
+    """Sparing unrecognised files must not spare a genuine stale acceptance."""
+    from reliability_lab import cli as cli_module
+
+    out = tmp_path / "reports"
+    assert cli_module.main(["demo", "--scenario", "baseline", "--output-dir", str(out)]) == 0
+    assert json.loads((out / "baseline.json").read_text(encoding="utf-8"))["gate"]["accepted"]
+
+    def unavailable(relative):
+        raise InputError(f"Missing bundled resource: {relative}")
+
+    monkeypatch.setattr(cli_module, "resource_path", unavailable)
+    assert cli_module.main(["demo", "--scenario", "baseline", "--output-dir", str(out)]) == 2
+    assert list(out.iterdir()) == []
+
+
+def test_review_closed_descriptor_case_holds_for_a_path_containing_a_space(tmp_path):
+    """A test that breaks on an ordinary path is not a guard, it is a trap."""
+    out = tmp_path / "test output" / "closed"
+    out.parent.mkdir()
+    result = subprocess.run(
+        f"{shlex.quote(sys.executable)} -m reliability_lab.cli demo --scenario baseline "
+        f"--output-dir {shlex.quote(str(out))} 1>&- 2>/dev/null",
+        shell=True, cwd=tmp_path, env=child_environment())
+    assert result.returncode == 0
+    assert (out / "baseline.json").is_file()
+
+
+@pytest.mark.parametrize("supplied", [
+    "\U000e0041 tag", "A\\B Ltd", "\x1b[31m", "café", "quote\"and\\slash", "‮reversed",
+])
+def test_review_displayed_json_values_parse_back_to_what_was_supplied(supplied):
+    """The report calls these JSON literals, so a JSON parser must accept them."""
+    from reliability_lab.reporting import _value
+
+    shown = _value(supplied)
+    # Undo only the Markdown escaping to recover the literal a reader sees.
+    literal = re.sub(r"\\([\\`*_{}\[\]()#+.!|~>-])", r"\1", shown)
+    assert json.loads(literal) == supplied, literal
+
+
+def test_review_displayed_json_values_keep_distinct_inputs_distinct():
+    """A control character and the literal text of its escape must not collapse."""
+    from reliability_lab.reporting import _value
+
+    assert _value("\x1b[31m") != _value("\\x1b[31m")
+    assert _value("\U000e0041") != _value("\\U000e0041")
+
+
+def test_review_input_protection_does_not_rest_on_a_successful_lookup(tmp_path, monkeypatch):
+    """Candidate locations are the load-bearing layer; the shape filter is the backstop.
+
+    Patching only `resource_path` lets the shape filter satisfy the check on its own,
+    so this pins the candidate layer by patching `resource_candidates` as well and
+    putting a genuinely report-shaped victim at the colliding output name.
+    """
+    from reliability_lab import cli as cli_module
+
+    victim = tmp_path / "baseline.json"
+    victim.write_text(json.dumps(evaluate(*inputs())), encoding="utf-8")
+    before = victim.read_bytes()
+
+    def unavailable(relative):
+        raise InputError(f"Missing bundled resource: {relative}")
+
+    monkeypatch.setattr(cli_module, "resource_path", unavailable)
+    monkeypatch.setattr(cli_module, "resource_candidates", lambda relative: [victim])
+    assert cli_module.main(["demo", "--scenario", "baseline", "--output-dir", str(tmp_path)]) == 2
+    assert victim.is_file() and victim.read_bytes() == before
+
+
+@pytest.mark.parametrize("scenario, expected", [("baseline", 0), ("regression", 1)])
+def test_review_the_installed_console_script_keeps_its_status(tmp_path, scenario, expected):
+    """`pyproject.toml`'s entry point is what users run; `python -m` is a different door."""
+    console = ROOT / ".venv/bin/reliability-lab"
+    if not console.is_file():
+        pytest.skip(f"no installed console script at {console}")
+    process = subprocess.Popen(
+        [str(console), "demo", "--scenario", scenario, "--output-dir", str(tmp_path / "out")],
+        cwd=tmp_path, env=child_environment(),
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    process.stdout.close()
+    process.wait(timeout=60)
+    assert process.returncode == expected
+    assert (tmp_path / "out" / f"{scenario}.json").is_file()
+
+
+@pytest.mark.parametrize("scenario, expected", [("baseline", 0), ("regression", 1)])
+def test_review_a_descriptor_closed_mid_run_keeps_its_status(tmp_path, scenario, expected):
+    """Reaches the descriptor-detach path, which `1>&-` skips by leaving stdout None."""
+    out = tmp_path / "midrun"
+    probe = (
+        "import os, sys\n"
+        "os.close(1)\n"
+        "from reliability_lab.cli import run\n"
+        f"raise SystemExit(run(['demo', '--scenario', {scenario!r},"
+        f" '--output-dir', {str(out)!r}]))\n"
+    )
+    result = subprocess.run([sys.executable, "-c", probe], cwd=tmp_path,
+                            env=child_environment(), capture_output=True, text=True, timeout=60)
+    assert result.returncode == expected, result.stderr
+    assert (out / f"{scenario}.json").is_file()
+
+
+def test_review_the_offline_guard_actually_blocks_what_it_names(tmp_path):
+    """A substring scan passes a guard that lists twelve names and patches one."""
+    module = _load_script("scripts/verify_offline.py")
+    probe = tmp_path / "probe.py"
+    probe.write_text(
+        module.GUARD.replace("from reliability_lab.cli import main", "")
+        .replace("raise SystemExit(main())", "")
+        + "\n"
+        "import json, socket, sys\n"
+        "blocked = []\n"
+        "for name in ('gethostbyname', 'gethostbyname_ex', 'gethostbyaddr', 'getfqdn',\n"
+        "             'getaddrinfo', 'getnameinfo', 'create_connection'):\n"
+        "    try:\n"
+        "        getattr(socket, name)('reliability-lab.invalid', 80)\n"
+        "    except RuntimeError:\n"
+        "        blocked.append(name)\n"
+        "    except Exception:\n"
+        "        pass\n"
+        "probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)\n"
+        "for name in ('connect', 'connect_ex', 'send', 'sendall', 'sendto'):\n"
+        "    try:\n"
+        "        getattr(probe, name)(b'x' if name in ('send', 'sendall') else ('127.0.0.1', 9))\n"
+        "    except RuntimeError:\n"
+        "        blocked.append(name)\n"
+        "    except Exception:\n"
+        "        pass\n"
+        "print(json.dumps(blocked))\n", encoding="utf-8")
+    result = subprocess.run([sys.executable, str(probe)], capture_output=True, text=True,
+                            timeout=60)
+    blocked = set(json.loads(result.stdout))
+    expected = {"gethostbyname", "gethostbyname_ex", "gethostbyaddr", "getfqdn", "getaddrinfo",
+                "getnameinfo", "create_connection", "connect", "connect_ex", "send", "sendall",
+                "sendto"}
+    assert expected - blocked == set(), f"the guard names but does not block {expected - blocked}"
+
+
+def test_review_the_declared_console_entry_point_is_the_process_boundary():
+    """An installed script only changes on reinstall, so pin the declaration too."""
+    import tomllib
+
+    configuration = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    target = configuration["project"]["scripts"]["reliability-lab"]
+    assert target == "reliability_lab.cli:run", (
+        "the console script must enter through run(), which owns stream finalisation; "
+        f"pyproject declares {target}")
+
+
+def test_review_detaching_a_descriptor_does_not_close_the_one_it_just_took(tmp_path):
+    """os.open hands back the lowest free descriptor, which is the one just closed."""
+    from reliability_lab import cli as cli_module
+
+    probe = (
+        "import os, sys\n"
+        "os.close(1)\n"
+        "from reliability_lab.cli import _detach\n"
+        "_detach(1)\n"
+        # Descriptor 1 must be usable again, not closed as a stray handle.
+        "os.write(1, b'')\n"
+        "sys.stderr.write('DESCRIPTOR USABLE\\n')\n"
+    )
+    result = subprocess.run([sys.executable, "-c", probe], cwd=tmp_path,
+                            env=child_environment(), capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stderr
+    assert "DESCRIPTOR USABLE" in result.stderr
+    assert hasattr(cli_module, "_detach")

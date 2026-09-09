@@ -64,7 +64,10 @@ letters, digits, underscores, and hyphens, starting with a letter or digit. It i
 limited to 100 characters and cannot contain a path. Outputs cannot overwrite
 the supplied dataset, predictions, policy, or baseline report. Reusing an output
 name replaces that report; if the new evaluation fails, its reserved old outputs
-are removed so an old acceptance does not appear to describe the failed run.
+are removed so an old acceptance does not appear to describe the failed run. That
+removal is best effort: a reserved output that cannot be read, or that is not
+recognisable as a report written here, is deliberately left alone rather than
+deleted, and the error message names every file kept for that reason.
 
 ## Compare saved reports
 
