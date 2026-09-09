@@ -441,7 +441,9 @@ def test_review_untrusted_text_is_inert_in_human_report():
     output = render_report(evaluate(data, supplied, policy))
     assert "\x1b" not in output and "\u202e" not in output
     assert "<script>" not in output and "[click](" not in output
-    assert "\\x1b" in output and "\\u202e" in output
+    # Supplied identifiers and excerpts carry JSON notation, which writes ESC
+    # as \u001b rather than \x1b; both are inert and now also unambiguous.
+    assert "\\u001b" in output and "\\u202e" in output
     assert "SYNTHETIC FIXTURE EVALUATION" in output
     assert "Decision: REJECTED" in output
 
@@ -502,12 +504,13 @@ def test_review_subprocess_tests_exercise_the_checkout_under_review():
 def test_review_display_failure_keeps_published_report_and_says_so(tmp_path):
     """Publication is irreversible; only display can still fail after it."""
     dataset, supplied, policy = inputs()
-    dataset["dataset_id"] = supplied["dataset_id"] = "café-set"
     for name, payload in (("d.json", dataset), ("p.json", supplied), ("pol.json", policy)):
         (tmp_path / name).write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     args = ["evaluate", "--dataset", str(tmp_path / "d.json"),
             "--predictions", str(tmp_path / "p.json"), "--policy", str(tmp_path / "pol.json"),
-            "--output-dir", str(tmp_path / "out"), "--name", "published"]
+            # The report itself is ASCII, so the non-ASCII that an ASCII stdout
+            # cannot encode is the resolved output path printed after publishing.
+            "--output-dir", str(tmp_path / "rapports-café"), "--name", "published"]
     environment = child_environment(PYTHONIOENCODING="ascii")
     result = subprocess.run([sys.executable, "-m", "reliability_lab.cli", *args], cwd=tmp_path,
                             env=environment, capture_output=True, text=True, timeout=60)
@@ -515,13 +518,12 @@ def test_review_display_failure_keeps_published_report_and_says_so(tmp_path):
     assert "could not be displayed" in result.stderr, result.stderr
     assert "No fresh report was produced" not in result.stderr
     for suffix in ("json", "md"):
-        assert (tmp_path / "out" / f"published.{suffix}").is_file()
+        assert (tmp_path / "rapports-café" / f"published.{suffix}").is_file()
 
 
 def test_review_in_process_run_leaves_the_callers_stdout_usable(tmp_path):
     """A display failure inside an importable main() must not touch a process-wide fd."""
     dataset, supplied, policy = inputs()
-    dataset["dataset_id"] = supplied["dataset_id"] = "café-set"
     for name, payload in (("d.json", dataset), ("p.json", supplied), ("pol.json", policy)):
         (tmp_path / name).write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     probe = (
@@ -531,7 +533,7 @@ def test_review_in_process_run_leaves_the_callers_stdout_usable(tmp_path):
         f"status = cli.main(['evaluate', '--dataset', {str(tmp_path / 'd.json')!r},"
         f" '--predictions', {str(tmp_path / 'p.json')!r},"
         f" '--policy', {str(tmp_path / 'pol.json')!r},"
-        f" '--output-dir', {str(tmp_path / 'out')!r}])\n"
+        f" '--output-dir', {str(tmp_path / 'rapports-café')!r}])\n"
         "sys.stdout.reconfigure(encoding='utf-8')\n"
         "print('HOST STILL SPEAKS', status)\n"
     )
@@ -1273,3 +1275,55 @@ def test_review_detaching_a_descriptor_does_not_close_the_one_it_just_took(tmp_p
     assert result.returncode == 0, result.stderr
     assert "DESCRIPTOR USABLE" in result.stderr
     assert hasattr(cli_module, "_detach")
+
+
+def test_review_two_documents_differing_only_by_a_control_character_stay_distinct():
+    """Through the public path: distinct case IDs must not share a rendered heading."""
+    dataset, _, policy = inputs()
+    prototype = dataset["cases"][0]
+    identifiers = ["CASE-\x1b[31m", "CASE-\\x1b[31m"]
+    assert identifiers[0] != identifiers[1]
+    cases, predictions = [], []
+    for case_id in identifiers:
+        case = copy.deepcopy(prototype)
+        case["case_id"] = case_id
+        cases.append(case)
+        record = copy.deepcopy(case["expected"])
+        record["supplier_name"] = "Wrong Co"
+        predictions.append({"case_id": case_id, "record": record,
+                            "evidence": copy.deepcopy(case["evidence"])})
+    data = {"dataset_id": "review-collision", "version": 1, "split": "development",
+            "cases": cases}
+    supplied = {"dataset_id": "review-collision", "mode": "external_predictions",
+                "scenario": "collision", "predictions": predictions}
+    rendered = render_report(evaluate(data, supplied, policy))
+    headings = [line for line in rendered.splitlines() if line.startswith("### ")]
+    assert len(headings) == 2
+    assert len(set(headings)) == 2, headings
+    assert "\x1b" not in rendered
+
+
+def test_review_a_rendered_document_excerpt_decodes_back_to_the_document(tmp_path):
+    """An excerpt is auditability evidence, so it must say exactly what the line said."""
+    dataset, _, policy = inputs()
+    prototype = dataset["cases"][0]
+    line_text = "Supplier A\\B Ltd and a \x1b escape"
+    case = copy.deepcopy(prototype)
+    case["case_id"] = "REVIEW-EXCERPT"
+    case["document"] = line_text + "\n" + case["document"]
+    for field in FIELDS:
+        case["evidence"][field] = [1] if case["expected"][field] is not None else []
+    record = copy.deepcopy(case["expected"])
+    record["supplier_name"] = "Wrong Co"
+    data = {"dataset_id": "review-excerpt", "version": 1, "split": "development",
+            "cases": [case]}
+    supplied = {"dataset_id": "review-excerpt", "mode": "external_predictions",
+                "scenario": "excerpt", "predictions": [{
+                    "case_id": case["case_id"], "record": record,
+                    "evidence": {f: ([1] if record[f] is not None else [])
+                                 for f in FIELDS}}]}
+    rendered = render_report(evaluate(data, supplied, policy))
+    shown = next(line for line in rendered.splitlines() if line.strip().startswith("- Line 1:"))
+    literal = re.sub(r"\\([\\`*_{}\[\]()#+.!|~>-])", r"\1", shown.split("- Line 1: ", 1)[1])
+    assert json.loads(literal) == line_text, literal
+    assert "\x1b" not in rendered

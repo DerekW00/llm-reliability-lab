@@ -20,11 +20,12 @@ def safe_text(value: object) -> str:
     Each escape has a fixed width for its prefix, so an escaped astral character can
     no longer be read as a shorter escape followed by a hex digit.
 
-    Known limit: a real control character and the literal text of its escape still
-    render alike here, because escaping the backslash as well would double every
-    ordinary backslash in a quoted document. Where that distinction matters the
-    report uses JSON notation instead, via `_value`, which is injective and parses
-    back to the value shown.
+    A real control character and the literal text of its escape still render alike
+    through this function alone, because escaping the backslash here as well would
+    double every ordinary backslash in a quoted document. Supplied identifiers and
+    document text therefore go through `_value` instead, whose JSON notation is
+    injective and parses back to the value shown; this function remains the terminal
+    guard for text the contract fixes, and for error messages.
     """
     pieces = []
     for char in str(value):
@@ -97,7 +98,14 @@ def _remediation(diff: dict) -> str:
 
 
 def render_report(report: dict) -> str:
-    """Render evaluator output; all supplied text is escaped for Markdown/terminals."""
+    """Render evaluator output; all supplied text is escaped for Markdown/terminals.
+
+    Supplied identifiers and quoted document text use `_value`'s JSON notation rather
+    than bare escaping, so two documents that differ only by a control character stay
+    distinguishable in the rendered report and each shown value parses back to what it
+    came from. Values the contract fixes — the split, the field names — are not
+    supplied text and read better unquoted.
+    """
     summary = report["summary"]
     gate = report["gate"]
     synthetic = report["mode"] == "synthetic_fixture"
@@ -116,8 +124,8 @@ def render_report(report: dict) -> str:
     lines += [
         "",
         f"**Decision: {'ACCEPTED' if gate['accepted'] else 'REJECTED'}**",
-        f"Dataset: {_md(report['dataset_id'])}; split: {_md(report['split'])}; "
-        f"scenario: {_md(report['scenario'])}.",
+        f"Dataset: {_value(report['dataset_id'])}; split: {_md(report['split'])}; "
+        f"scenario: {_value(report['scenario'])}.",
         "",
         "## Coverage and metrics",
         "",
@@ -186,7 +194,7 @@ def render_report(report: dict) -> str:
         for diff in shown:
             severity = "CRITICAL" if diff["critical"] else "noncritical"
             lines += [
-                f"### {_md(diff['case_id'])} / {_md(diff['field'])} ({severity})",
+                f"### {_value(diff['case_id'])} / {_md(diff['field'])} ({severity})",
                 "",
                 f"Category: {_md(diff['category'])}. Expected: {_value(diff['expected'])}; "
                 f"actual: {_value(diff['actual'])}.",
@@ -198,7 +206,7 @@ def render_report(report: dict) -> str:
                 references = diff["evidence"][side]
                 lines.append(f"- {side.capitalize()} evidence lines: {_value(references)}.")
                 for excerpt in diff["document_excerpts"][side]:
-                    lines.append(f"  - Line {excerpt['line']}: {_md(excerpt['text'])}")
+                    lines.append(f"  - Line {excerpt['line']}: {_value(excerpt['text'])}")
             lines.append("")
     provenance = report["provenance"]
     lines += [
