@@ -4,7 +4,7 @@
 Authored fixtures, no live model calls. These scores are not model accuracy or production evidence.
 
 **Decision: ACCEPTED**
-Dataset: synthetic\-invoices\-evaluation\-v1; split: evaluation; scenario: baseline.
+Dataset: "synthetic\-invoices\-evaluation\-v1"; split: evaluation; scenario: "baseline".
 
 ## Coverage and metrics
 
@@ -51,23 +51,23 @@ All required policy checks passed.
 
 Showing 1 of 1 field differences, critical first. The JSON report contains every difference.
 
-### EVAL\-02 / supplier\_name (noncritical)
+### "EVAL\-02" / supplier\_name (noncritical)
 
 Category: wrong\_value. Expected: "Copper Vale Binding"; actual: "Copper Vale Bindery".
 
 Action: Check supplier selection and spelling against the cited source\.
 
 - Expected evidence lines: \[1\].
-  - Line 1: \[ seller = Copper Vale Binding \]
+  - Line 1: "\[ seller = Copper Vale Binding \]"
 - Actual evidence lines: \[1\].
-  - Line 1: \[ seller = Copper Vale Binding \]
+  - Line 1: "\[ seller = Copper Vale Binding \]"
 
 
 ## Reproducibility and limits
 
-Timestamp (UTC): 2026\-09\-12T05:33:08\.807035Z.
-Code revision: "9b1ec55b221e98c7a0ce46fa34b1623002e55a44"; working tree dirty: false; Python: 3\.12\.14.
-Evaluation time: 0.070792 seconds (fixture\_evaluation); this is not model latency.
+Timestamp (UTC): 2026\-09\-12T10:24:15\.993079Z.
+Code revision: "5ce81ab5057a822c5c115bcff4d22f35a0d31c68"; working tree dirty: false; Python: 3\.12\.14.
+Evaluation time: 0.046635 seconds (fixture\_evaluation); this is not model latency.
 
 - dataset\_sha256: 9007d10d0528565e20efc317a01e917f55586db0d6ff2a83e862bb65980ed88f
 - predictions\_sha256: 3a3f032762a8fc4c5e2c30f603ff7dcabd4a87d96f25edc76375129240410ea4
