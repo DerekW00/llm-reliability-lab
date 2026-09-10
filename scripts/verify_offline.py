@@ -22,6 +22,10 @@ for name in ('connect', 'connect_ex', 'send', 'sendall', 'sendto'):
 for name in ('create_connection', 'getaddrinfo', 'gethostbyname', 'gethostbyname_ex',
              'gethostbyaddr', 'getfqdn', 'getnameinfo'):
     setattr(socket, name, blocked)
+import os
+import reliability_lab
+with open(os.environ["OFFLINE_IMPORT_ORIGIN"], "w") as handle:
+    handle.write(reliability_lab.__file__)
 from reliability_lab.cli import main
 raise SystemExit(main())
 """
@@ -29,7 +33,10 @@ raise SystemExit(main())
 # The child needs only enough environment to locate an interpreter, Git and a
 # temporary directory. An allowlist keeps unrelated provider credentials out;
 # a name denylist cannot, because most credential names are unpredictable.
-PASSTHROUGH = ("PATH", "HOME", "TMPDIR", "SYSTEMROOT", "COMSPEC", "PYTHONPATH")
+# PYTHONPATH is deliberately absent: it precedes site-packages, so forwarding it
+# would let the gate certify whatever code the caller pointed at instead of the
+# installed distribution. The child reports what it imported, and it is checked.
+PASSTHROUGH = ("PATH", "HOME", "TMPDIR", "SYSTEMROOT", "COMSPEC")
 
 
 class CheckFailed(RuntimeError):
@@ -45,8 +52,13 @@ def main() -> int:
     environment = {key: os.environ[key] for key in PASSTHROUGH if key in os.environ}
     environment["UV_OFFLINE"] = "1"
     environment["LANG"] = "en_US.UTF-8"
+    import reliability_lab
+
+    expected_origin = reliability_lab.__file__
     with tempfile.TemporaryDirectory(prefix="reliability-offline-") as temporary:
         out = Path(temporary) / "reports"
+        origin = Path(temporary) / "import-origin.txt"
+        environment["OFFLINE_IMPORT_ORIGIN"] = str(origin)
         commands = [
             (["demo", "--scenario", name, "--output-dir", str(out)], expected)
             for name, expected in (("baseline", 0), ("regression", 1), ("repaired", 0))
@@ -58,6 +70,10 @@ def main() -> int:
                                        cwd=temporary, env=environment, capture_output=True,
                                        text=True, timeout=60, check=False)
             print(f"{' '.join(args[:3])}: exit {completed.returncode} (expected {expected})")
+            require(origin.is_file(), "the child never reported which package it imported")
+            require(origin.read_text(encoding="utf-8") == expected_origin,
+                    f"the child imported {origin.read_text(encoding='utf-8')!r}, "
+                    f"not the installed {expected_origin!r}")
             if completed.returncode != expected or "OFFLINE GUARD:" in completed.stderr:
                 print(completed.stdout)
                 print(completed.stderr, file=sys.stderr)

@@ -401,8 +401,10 @@ def test_review_cli_missing_files_remove_stale_pass(tmp_path, missing):
         paths[missing] = tmp_path / f"missing-{missing}.json"
     for key, path in paths.items():
         args += [f"--{key}", str(path)]
-    (tmp_path / "stale.json").write_text('{"gate":{"accepted":true}}')
-    (tmp_path / "stale.md").write_text("ACCEPTED")
+    # A genuine accepted pair, so this exercises the recognition cleanup really uses.
+    stale = evaluate(*inputs())
+    (tmp_path / "stale.json").write_text(json.dumps(stale), encoding="utf-8")
+    (tmp_path / "stale.md").write_text(render_report(stale), encoding="utf-8")
     result = invoke(args, tmp_path)
     assert result.returncode == 2
     assert "Traceback" not in result.stderr
@@ -502,23 +504,35 @@ def test_review_subprocess_tests_exercise_the_checkout_under_review():
     assert result.stdout.strip() == str(ROOT / "src/reliability_lab/__init__.py"), result.stdout
 
 def test_review_display_failure_keeps_published_report_and_says_so(tmp_path):
-    """Publication is irreversible; only display can still fail after it."""
+    """Publication is irreversible; only display can still fail after it.
+
+    Everything this CLI prints is ASCII by construction, so the failure is provoked
+    at the stream rather than through an encoding the report can no longer contain.
+    """
     dataset, supplied, policy = inputs()
     for name, payload in (("d.json", dataset), ("p.json", supplied), ("pol.json", policy)):
         (tmp_path / name).write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-    args = ["evaluate", "--dataset", str(tmp_path / "d.json"),
-            "--predictions", str(tmp_path / "p.json"), "--policy", str(tmp_path / "pol.json"),
-            # The report itself is ASCII, so the non-ASCII that an ASCII stdout
-            # cannot encode is the resolved output path printed after publishing.
-            "--output-dir", str(tmp_path / "rapports-café"), "--name", "published"]
-    environment = child_environment(PYTHONIOENCODING="ascii")
-    result = subprocess.run([sys.executable, "-m", "reliability_lab.cli", *args], cwd=tmp_path,
-                            env=environment, capture_output=True, text=True, timeout=60)
-    assert result.returncode == 0, (result.stdout, result.stderr)
-    assert "could not be displayed" in result.stderr, result.stderr
+    out = tmp_path / "out"
+    probe = (
+        "import io, sys\n"
+        "import reliability_lab.cli as cli\n"
+        "class Refuses(io.TextIOBase):\n"
+        "    def write(self, text):\n"
+        "        raise OSError('the terminal went away')\n"
+        "sys.stdout = Refuses()\n"
+        f"status = cli.main(['evaluate', '--dataset', {str(tmp_path / 'd.json')!r},"
+        f" '--predictions', {str(tmp_path / 'p.json')!r},"
+        f" '--policy', {str(tmp_path / 'pol.json')!r},"
+        f" '--output-dir', {str(out)!r}, '--name', 'published'])\n"
+        "sys.stderr.write(f'STATUS {status}\\n')\n"
+    )
+    result = subprocess.run([sys.executable, "-c", probe], cwd=tmp_path,
+                            env=child_environment(), capture_output=True, text=True, timeout=60)
+    assert "STATUS 0" in result.stderr, (result.stdout, result.stderr)
+    assert "could not be displayed" in result.stderr
     assert "No fresh report was produced" not in result.stderr
     for suffix in ("json", "md"):
-        assert (tmp_path / "rapports-café" / f"published.{suffix}").is_file()
+        assert (out / f"published.{suffix}").is_file()
 
 
 def test_review_in_process_run_leaves_the_callers_stdout_usable(tmp_path):
@@ -1217,6 +1231,9 @@ def test_review_the_offline_guard_actually_blocks_what_it_names(tmp_path):
     probe.write_text(
         module.GUARD.replace("from reliability_lab.cli import main", "")
         .replace("raise SystemExit(main())", "")
+        .replace("import reliability_lab\n", "")
+        .replace('with open(os.environ["OFFLINE_IMPORT_ORIGIN"], "w") as handle:\n'
+                 "    handle.write(reliability_lab.__file__)\n", "")
         + "\n"
         "import json, socket, sys\n"
         "blocked = []\n"
@@ -1327,3 +1344,36 @@ def test_review_a_rendered_document_excerpt_decodes_back_to_the_document(tmp_pat
     literal = re.sub(r"\\([\\`*_{}\[\]()#+.!|~>-])", r"\1", shown.split("- Line 1: ", 1)[1])
     assert json.loads(literal) == line_text, literal
     assert "\x1b" not in rendered
+
+
+def test_review_two_paths_differing_only_by_a_control_character_print_apart():
+    """The diagnostic channel must distinguish what it names, not just neutralise it."""
+    from reliability_lab.reporting import quoted
+
+    real = "/tmp/run/report-\x1b[31m.json"
+    literal = "/tmp/run/report-\\x1b[31m.json"
+    assert real != literal
+    assert quoted(real) != quoted(literal)
+    for shown in (quoted(real), quoted(literal)):
+        assert "\x1b" not in shown
+    assert json.loads(quoted(real)) == real
+    assert json.loads(quoted(literal)) == literal
+
+
+def test_review_the_offline_gate_reports_which_package_it_certified(tmp_path):
+    """A gate that does not check what it imported can certify a different package."""
+    module = _load_script("scripts/verify_offline.py")
+    assert "PYTHONPATH" not in module.PASSTHROUGH
+    assert "OFFLINE_IMPORT_ORIGIN" in module.GUARD
+    fake = tmp_path / "fake"
+    (fake / "reliability_lab").mkdir(parents=True)
+    (fake / "reliability_lab/__init__.py").write_text("", encoding="utf-8")
+    (fake / "reliability_lab/cli.py").write_text(
+        "import sys\n\n\ndef main(argv=None):\n"
+        "    return 1 if 'regression' in sys.argv or 'compare' in sys.argv else 0\n",
+        encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/verify_offline.py")], cwd=tmp_path,
+        env={**os.environ, "PYTHONPATH": str(fake)}, capture_output=True, text=True, timeout=300)
+    assert result.returncode != 0, "the gate certified a package that was not under test"
+    assert "not the installed" in result.stderr or "never reported" in result.stderr

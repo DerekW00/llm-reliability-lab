@@ -10,11 +10,10 @@ from typing import Sequence
 
 from .contracts import read_json
 from .reporting import (
-    clear_reports,
     clear_reports_only,
+    quoted,
     render_report,
     report_paths,
-    safe_text,
     write_reports,
 )
 from .resources import resource_candidates, resource_path
@@ -102,13 +101,13 @@ def _present(report: dict, json_path: Path, markdown_path: Path, status: int) ->
         # The process was started with the descriptor closed; there is nowhere to show it.
         return status
     text = (f"{render_report(report)}\n"
-            f"JSON: {safe_text(json_path.resolve())}\n"
-            f"Markdown: {safe_text(markdown_path.resolve())}\n")
+            f"JSON: {quoted(json_path.resolve())}\n"
+            f"Markdown: {quoted(markdown_path.resolve())}\n")
     try:
         sys.stdout.write(text)
         sys.stdout.flush()
     except (OSError, UnicodeError, ValueError) as exc:
-        _warn(f"Warning: the report was published but could not be displayed: {safe_text(exc)}")
+        _warn(f"Warning: the report was published but could not be displayed: {quoted(exc)}")
     return status
 
 
@@ -149,7 +148,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             inputs = [args.baseline_report, args.candidate_report]
 
         outputs = report_paths(args.output_dir, name, input_paths=inputs)
-        clear_reports(outputs)
+        # Same rule as the failure path: reserve the names, but do not remove a file
+        # that is not recognisably a report. A successful run republishes over it.
+        clear_reports_only(outputs)
         if args.command == "compare":
             report = _compare(read_json(args.baseline_report), read_json(args.candidate_report))
         else:
@@ -179,14 +180,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             try:
                 retained = clear_reports_only(outputs)
                 if retained:
-                    kept = ", ".join(safe_text(path) for path in retained)
+                    kept = ", ".join(quoted(path) for path in retained)
                     cleanup_note = (" These reserved outputs were left in place, because they "
                                     f"are not recognisable as reports written here: {kept}.")
             except Exception as cleanup_error:
                 # Cleanup is best effort; a failure here reports itself but must
                 # never replace the execution error that is the run's real result.
-                cleanup_note = f" Could not remove old outputs: {safe_text(cleanup_error)}."
-        _warn(f"Error: {safe_text(exc)}\nNo fresh report was produced.{cleanup_note}")
+                cleanup_note = f" Could not remove old outputs: {quoted(cleanup_error)}."
+        _warn(f"Error: {quoted(exc)}\nNo fresh report was produced.{cleanup_note}")
         return 2
     # Publication is complete and irreversible from here; only display can still fail.
     return _present(report, json_path, markdown_path, status)
