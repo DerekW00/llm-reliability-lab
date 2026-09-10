@@ -169,7 +169,9 @@ def test_evaluation_error_does_not_write_report(monkeypatch, capsys, tmp_path, i
 
 @pytest.mark.parametrize("name", ["../escape", "/absolute", "a/b", "a\\b", ".", "..", "", "a.md",
                                   " a", "a\n", "a" * 101])
-def test_unsafe_names_are_rejected(tmp_path, inputs, name):
+def test_unsafe_names_are_rejected(tmp_path, inputs, name, monkeypatch, report):
+    # Valid downstream evaluation prevents an unrelated schema error from passing this test.
+    monkeypatch.setattr(cli, "_evaluate", lambda *args, **kwargs: report)
     assert cli.main(evaluate_args(inputs, tmp_path / "out") + ["--name", name]) == 2
     assert not (tmp_path / "escape.json").exists()
 
@@ -211,9 +213,8 @@ def test_output_directory_error_is_concise(monkeypatch, capsys, tmp_path, inputs
 
 
 def test_strict_json_refuses_nan_and_removes_stale_outputs(tmp_path, report):
+    reporting.write_reports(report, tmp_path, "evaluation")
     report["summary"]["micro"]["f1"] = float("nan")
-    for suffix in ("json", "md"):
-        (tmp_path / f"evaluation.{suffix}").write_text("old accepted report")
     with pytest.raises(ValueError):
         reporting.write_reports(report, tmp_path, "evaluation")
     assert list(tmp_path.iterdir()) == []
@@ -254,7 +255,7 @@ def test_report_escapes_untrusted_markdown_and_terminal_controls(report):
     result = reporting.render_report(report)
     assert "\x1b" not in result and "\u202e" not in result
     assert "<script>" not in result and "[click](" not in result
-    assert "&lt;script&gt;" in result
+    assert r"\\u003cscript\\u003e" in result
     assert "\\|" in result
     assert "preserve leading zeros" in result
     assert "Line 1:" in result

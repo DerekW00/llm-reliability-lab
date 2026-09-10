@@ -63,11 +63,16 @@ Omit `--baseline` for a policy-only evaluation. `--name` is a filename stem of
 letters, digits, underscores, and hyphens, starting with a letter or digit. It is
 limited to 100 characters and cannot contain a path. Outputs cannot overwrite
 the supplied dataset, predictions, policy, or baseline report. Reusing an output
-name replaces that report; if the new evaluation fails, its reserved old outputs
+name replaces whatever file is at that name when publication succeeds. If the new
+evaluation fails, its reserved old outputs
 are removed so an old acceptance does not appear to describe the failed run. That
 removal is best effort: a reserved output that cannot be read, or that is not
 recognisable as a report written here, is deliberately left alone rather than
 deleted, and the error message names every file kept for that reason.
+If publication fails partway through, newly published files are removed; unrelated
+files that were never replaced are preserved. Cleanup is best effort in this case
+too. Diagnostics go to stderr; redirecting stderr hides those details, while exit 2
+still identifies a failed execution.
 
 ## Compare saved reports
 

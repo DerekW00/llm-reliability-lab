@@ -66,20 +66,27 @@ def main() -> int:
         commands.append((["compare", str(out / "baseline.json"),
                           str(out / "regression.json"), "--output-dir", str(out)], 1))
         for args, expected in commands:
+            # Require evidence from this child, even when an early crash happens
+            # to return the expected quality-rejection status.
+            origin.unlink(missing_ok=True)
             completed = subprocess.run([sys.executable, "-c", GUARD, *args],
                                        cwd=temporary, env=environment, capture_output=True,
                                        text=True, timeout=60, check=False)
             print(f"{' '.join(args[:3])}: exit {completed.returncode} (expected {expected})")
             require(origin.is_file(), "the child never reported which package it imported")
-            require(origin.read_text(encoding="utf-8") == expected_origin,
-                    f"the child imported {origin.read_text(encoding='utf-8')!r}, "
-                    f"not the installed {expected_origin!r}")
+            reported_origin = origin.read_text(encoding="utf-8")
+            require(reported_origin == expected_origin,
+                    f"the child imported {reported_origin!r}, but the verification "
+                    f"process resolved {expected_origin!r}; check the environment and installation")
             if completed.returncode != expected or "OFFLINE GUARD:" in completed.stderr:
                 print(completed.stdout)
                 print(completed.stderr, file=sys.stderr)
                 return 1
         for scenario in ("baseline", "regression", "repaired"):
-            report = json.loads((out / f"{scenario}.json").read_text(encoding="utf-8"))
+            try:
+                report = json.loads((out / f"{scenario}.json").read_text(encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                raise CheckFailed(f"{scenario}: no readable JSON report was produced") from exc
             require(report["mode"] == "synthetic_fixture", f"{scenario}: mode is not a fixture")
             require(report["provenance"]["live_calls"] is False, f"{scenario}: live_calls set")
             require(report["provenance"]["model"] is None, f"{scenario}: a model was recorded")
