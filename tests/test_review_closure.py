@@ -49,6 +49,7 @@ def test_each_rejecting_child_must_report_its_own_import(monkeypatch, failed_chi
             scenario = command[command.index("--scenario") + 1]
             (out / f"{scenario}.json").write_text(json.dumps({
                 "mode": "synthetic_fixture", "provenance": {"live_calls": False, "model": None},
+                "gate": {"accepted": scenario != "regression"},
             }))
         return subprocess.CompletedProcess(args, 1 if index in (1, 3) else 0, "", "")
 
@@ -56,6 +57,31 @@ def test_each_rejecting_child_must_report_its_own_import(monkeypatch, failed_chi
     with pytest.raises(checker.CheckFailed, match="never reported"):
         checker.main()
     assert len(calls) == failed_child + 1
+
+
+@pytest.mark.parametrize("fault", ["missing_report", "wrong_decision"])
+def test_comparison_must_produce_a_matching_report_after_import(monkeypatch, fault):
+    checker = offline_checker()
+
+    def child(args, **options):
+        Path(options["env"]["OFFLINE_IMPORT_ORIGIN"]).write_text(reliability_lab.__file__)
+        command = args[3:]
+        scenario = "comparison" if command[0] == "compare" else command[2]
+        out = Path(command[command.index("--output-dir") + 1])
+        out.mkdir(exist_ok=True)
+        accepted = scenario in ("baseline", "repaired")
+        if not (scenario == "comparison" and fault == "missing_report"):
+            payload = {"mode": "synthetic_fixture",
+                       "provenance": {"live_calls": False, "model": None},
+                       "gate": {"accepted": accepted}}
+            if scenario == "comparison" and fault == "wrong_decision":
+                payload["gate"]["accepted"] = True
+            (out / f"{scenario}.json").write_text(json.dumps(payload))
+        return subprocess.CompletedProcess(args, 0 if accepted else 1, "", "")
+
+    monkeypatch.setattr(checker.subprocess, "run", child)
+    with pytest.raises(checker.CheckFailed, match="comparison:"):
+        checker.main()
 
 
 def test_missing_produced_report_is_an_explicit_verification_failure(monkeypatch):

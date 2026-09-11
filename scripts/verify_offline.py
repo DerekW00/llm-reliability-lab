@@ -82,14 +82,22 @@ def main() -> int:
                 print(completed.stdout)
                 print(completed.stderr, file=sys.stderr)
                 return 1
-        for scenario in ("baseline", "regression", "repaired"):
+        for scenario, accepted in (("baseline", True), ("regression", False),
+                                   ("repaired", True), ("comparison", False)):
             try:
                 report = json.loads((out / f"{scenario}.json").read_text(encoding="utf-8"))
             except (OSError, ValueError) as exc:
                 raise CheckFailed(f"{scenario}: no readable JSON report was produced") from exc
-            require(report["mode"] == "synthetic_fixture", f"{scenario}: mode is not a fixture")
-            require(report["provenance"]["live_calls"] is False, f"{scenario}: live_calls set")
-            require(report["provenance"]["model"] is None, f"{scenario}: a model was recorded")
+            require(isinstance(report, dict), f"{scenario}: report is not an object")
+            require(report.get("mode") == "synthetic_fixture", f"{scenario}: mode is not a fixture")
+            provenance = report.get("provenance")
+            require(isinstance(provenance, dict), f"{scenario}: provenance is missing")
+            require(provenance.get("live_calls") is False, f"{scenario}: live_calls set or missing")
+            require("model" in provenance and provenance["model"] is None,
+                    f"{scenario}: model is set or missing")
+            gate = report.get("gate")
+            require(isinstance(gate, dict) and gate.get("accepted") is accepted,
+                    f"{scenario}: report decision does not match the expected exit status")
     print("Offline subprocess checks passed; no provider credentials were forwarded.")
     return 0
 
