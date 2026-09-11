@@ -1,12 +1,34 @@
-# LLM Reliability Lab — final local handoff
+# LLM Reliability Lab — local handoff
+
+## Review follow-up — 2026-09-12 Pacific
+
+**In progress; final Opus follow-up pending.** The isolated repair candidate passed
+341 tests and all 27 parent checks. Runtime source is `57655fc`; verification-script
+follow-up is `5cb4d1c`. Saved examples were generated from clean `57655fc` and retain
+that real provenance. Main still contains the original delivery at `126a9a7`.
+
+The requested Claude Code review ran on Opus, which is also now its global default.
+Three Opus verification reports confirmed the original runtime repairs. Further
+review/verification gaps were repaired. Both bounded Codex reviews completed
+without actionable findings; the final Opus continuation and integration remain. The provider
+quota resets at 05:30 Pacific; this task resumes automatically at 05:35 Pacific.
+
+[The review record](docs/claude-review.md) separates fixed defects, test gaps,
+refuted claims, methodology limitations and the precise remaining work. All frozen
+inputs and policy remain unchanged. No push, deployment or public release occurred.
+
+## Original build handoff — 2026-09-11
+
+The following section preserves the original delivery's results. Its 241-test
+count and source revision are historical, not the current repair candidate.
 
 **Complete.** Mandatory offline acceptance passes, including fresh independent AI
 review, reproduction and repair of the one confirmed defect, and final combined
 branch verification. Baseline and repaired pass; the simulated regression and
 its saved comparison reject as intended. No required work remains for this local build.
 
-Repository: `/Users/dw/llm-reliability-lab` · branch `main` · delivery commit: `HEAD`
-(the commit containing this report; run `git rev-parse HEAD` for its full hash).
+Repository: `/Users/dw/llm-reliability-lab` · original delivery commit:
+`126a9a7c6de0c56cc852800e8a4b8a4ed5653320`.
 Final runtime source: `9b1ec55b221e98c7a0ce46fa34b1623002e55a44`.
 The later report, review and delivery commits do not change runtime behavior.
 
