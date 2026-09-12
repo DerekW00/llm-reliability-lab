@@ -25,7 +25,7 @@ def safe_text(value: object) -> str:
     double every ordinary backslash in a quoted document. Supplied identifiers and
     document text therefore go through `_value` instead, whose JSON notation is
     injective and parses back to the value shown; this function remains the terminal
-    guard for text the contract fixes, and for error messages.
+    guard for text the contract fixes. CLI diagnostics use `quoted`.
     """
     pieces = []
     for char in str(value):
@@ -67,7 +67,11 @@ def _value(value: object) -> str:
     no JSON parser accepts. Escaping inside the encoder keeps the notation valid and
     keeps distinct inputs distinct.
     """
-    return _md(json.dumps(value, ensure_ascii=True, allow_nan=False, sort_keys=True))
+    text = json.dumps(value, ensure_ascii=True, allow_nan=False, sort_keys=True)
+    # Preserve JSON notation through the Markdown layer's HTML escaping too.
+    for character, escape in (("&", r"\u0026"), ("<", r"\u003c"), (">", r"\u003e")):
+        text = text.replace(character, escape)
+    return _md(text)
 
 
 def _seconds(value: object) -> str:
@@ -326,9 +330,10 @@ def write_reports(
     report: dict, output_dir: str | Path, name: str, *,
     input_paths: Iterable[str | Path] = (),
 ) -> tuple[Path, Path]:
-    """Publish strict JSON and Markdown, clearing either output if writing fails."""
+    """Replace the named outputs; on failure remove new outputs and recognized old reports."""
     paths = report_paths(output_dir, name, input_paths=input_paths)
     temporary: list[Path] = []
+    published: list[Path] = []
     try:
         payloads = (
             json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False) + "\n",
@@ -344,10 +349,14 @@ def write_reports(
                 handle.write(payload)
         for path, temp in zip(paths, temporary, strict=True):
             os.replace(temp, path)
+            published.append(path)
     except BaseException:
         # Also rolls back on KeyboardInterrupt between the two renames, which
         # would otherwise leave a published JSON with no Markdown beside it.
-        clear_reports(paths)
+        clear_reports(published)
+        # A failed replacement never grants ownership of a stranger at that name.
+        # Recognized reports also cover an interruption just after os.replace.
+        clear_reports_only(path for path in paths if path not in published)
         raise
     finally:
         for temp in temporary:

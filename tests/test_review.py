@@ -543,18 +543,24 @@ def test_review_in_process_run_leaves_the_callers_stdout_usable(tmp_path):
     probe = (
         "import sys\n"
         "import reliability_lab.cli as cli\n"
-        "sys.stdout.reconfigure(encoding='ascii')\n"
+        "original = sys.stdout\n"
+        "class Refuses:\n"
+        "    def write(self, text): raise OSError('display unavailable')\n"
+        "    def flush(self): pass\n"
+        "sys.stdout = Refuses()\n"
         f"status = cli.main(['evaluate', '--dataset', {str(tmp_path / 'd.json')!r},"
         f" '--predictions', {str(tmp_path / 'p.json')!r},"
         f" '--policy', {str(tmp_path / 'pol.json')!r},"
         f" '--output-dir', {str(tmp_path / 'rapports-café')!r}])\n"
-        "sys.stdout.reconfigure(encoding='utf-8')\n"
+        "sys.stdout = original\n"
         "print('HOST STILL SPEAKS', status)\n"
     )
     result = subprocess.run([sys.executable, "-c", probe], cwd=tmp_path,
                             env=child_environment(),
                             capture_output=True, text=True, timeout=60)
     assert "HOST STILL SPEAKS 0" in result.stdout, (result.stdout, result.stderr)
+    assert result.returncode == 0
+    assert "could not be displayed" in result.stderr
 
 
 @pytest.mark.parametrize("scenario, expected", [("baseline", 0), ("regression", 1)])
@@ -1150,6 +1156,7 @@ def test_review_closed_descriptor_case_holds_for_a_path_containing_a_space(tmp_p
 
 @pytest.mark.parametrize("supplied", [
     "\U000e0041 tag", "A\\B Ltd", "\x1b[31m", "café", "quote\"and\\slash", "‮reversed",
+    "A&B Ltd", "x < y", "a > b", r"literal \u0026 and &",
 ])
 def test_review_displayed_json_values_parse_back_to_what_was_supplied(supplied):
     """The report calls these JSON literals, so a JSON parser must accept them."""
@@ -1276,8 +1283,6 @@ def test_review_the_declared_console_entry_point_is_the_process_boundary():
 
 def test_review_detaching_a_descriptor_does_not_close_the_one_it_just_took(tmp_path):
     """os.open hands back the lowest free descriptor, which is the one just closed."""
-    from reliability_lab import cli as cli_module
-
     probe = (
         "import os, sys\n"
         "os.close(1)\n"
@@ -1291,7 +1296,6 @@ def test_review_detaching_a_descriptor_does_not_close_the_one_it_just_took(tmp_p
                             env=child_environment(), capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stderr
     assert "DESCRIPTOR USABLE" in result.stderr
-    assert hasattr(cli_module, "_detach")
 
 
 def test_review_two_documents_differing_only_by_a_control_character_stay_distinct():
@@ -1376,4 +1380,4 @@ def test_review_the_offline_gate_reports_which_package_it_certified(tmp_path):
         [sys.executable, str(ROOT / "scripts/verify_offline.py")], cwd=tmp_path,
         env={**os.environ, "PYTHONPATH": str(fake)}, capture_output=True, text=True, timeout=300)
     assert result.returncode != 0, "the gate certified a package that was not under test"
-    assert "not the installed" in result.stderr or "never reported" in result.stderr
+    assert "verification process resolved" in result.stderr or "never reported" in result.stderr
