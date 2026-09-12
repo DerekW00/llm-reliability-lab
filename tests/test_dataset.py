@@ -4,12 +4,19 @@ from __future__ import annotations
 
 import hashlib
 import re
+from datetime import datetime
 from difflib import SequenceMatcher
 from pathlib import Path
 
 import pytest
 
-from reliability_lab.contracts import FIELDS, read_json, validate_dataset
+from reliability_lab.contracts import (
+    FIELDS,
+    normalize,
+    read_json,
+    validate_dataset,
+    validate_predictions,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 FROZEN_SHA256 = {
@@ -21,6 +28,12 @@ LEADING_ZERO_CASES = {
     "EVAL-01", "EVAL-04", "EVAL-09", "EVAL-12",
     "EVAL-17", "EVAL-23", "EVAL-31", "EVAL-37",
 }
+FIXTURE_SHA256 = {
+    "baseline": "f39542c5f9c7ed633f96629fe2a7ba29913610fb77c56ebe15a5e7a4389a18ca",
+    "regression": "26ce19c971de3e4d1f07bfc1be320d07b7687db3a07d65e457ce0a7aa64629c4",
+    "repaired": "0977102b09d3ee9f9699b630c5f43036f38fbc0afc4f367405ed6b59a4bcd7f7",
+}
+SUPPLEMENT_SHA256 = "b4ef2f5874b902fe530f2538d27ff5a657521aafb495507238b54ec1f04352f0"
 
 
 def dataset(split: str) -> dict:
@@ -171,3 +184,101 @@ def test_instruction_like_text_does_not_supply_reference_labels():
     for case_id, instruction_line in [("EVAL-08", 5), ("EVAL-32", 3)]:
         assert "source_instruction" in cases[case_id]["tags"]
         assert all(instruction_line not in refs for refs in cases[case_id]["evidence"].values())
+
+
+def test_reference_values_appear_in_cited_text_or_declared_date_format():
+    """Catch swapped lines and label typos, without claiming full semantic entailment."""
+    for split in ("development", "evaluation"):
+        for case in dataset(split)["cases"]:
+            lines = case["document"].splitlines()
+            for field in FIELDS:
+                value = case["expected"][field]
+                if value is None:
+                    continue
+                excerpt = " ".join(lines[number - 1] for number in case["evidence"][field])
+                if field == "supplier_name":
+                    assert normalize(field, value) in " ".join(excerpt.split()).casefold()
+                elif field == "due_date" and value not in excerpt:
+                    pattern = "%m/%d/%Y" if "MM/DD/YYYY" in excerpt else "%d/%m/%Y"
+                    assert "MM/DD/YYYY" in excerpt or "DD/MM/YYYY" in excerpt
+                    dates = re.findall(r"\b\d{2}/\d{2}/\d{4}\b", excerpt)
+                    assert any(datetime.strptime(date, pattern).date().isoformat() == value
+                               for date in dates)
+                else:
+                    assert value in excerpt, (case["case_id"], field, excerpt)
+
+
+@pytest.mark.parametrize("scenario", ["baseline", "regression", "repaired"])
+def test_static_fixtures_are_frozen_valid_and_complete(scenario):
+    path = ROOT / "data/predictions" / f"{scenario}.json"
+    artifact = read_json(path)
+    assert validate_predictions(artifact, dataset("evaluation")) is artifact
+    assert artifact["mode"] == "synthetic_fixture"
+    assert artifact["scenario"] == scenario
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    assert digest == FIXTURE_SHA256[scenario]
+    manifest = read_json(ROOT / "data/predictions/manifest.json")
+    assert manifest["files"][f"data/predictions/{scenario}.json"] == digest
+    assert manifest["dataset_freeze_commit"] == "c2c4c4f26abbe413eb8db02e1b2570f3ffd458b2"
+
+
+def test_baseline_has_exactly_one_noncritical_error_and_repair_retains_it():
+    baseline = read_json(ROOT / "data/predictions/baseline.json")
+    repaired = read_json(ROOT / "data/predictions/repaired.json")
+    cases = cases_by_id()
+    mismatches = [
+        (prediction["case_id"], field)
+        for prediction in baseline["predictions"] for field in FIELDS
+        if normalize(field, prediction["record"][field])
+        != normalize(field, cases[prediction["case_id"]]["expected"][field])
+    ]
+    assert mismatches == [("EVAL-02", "supplier_name")]
+    assert repaired["predictions"] == baseline["predictions"]
+
+
+def test_regression_is_exactly_the_documented_numeric_coercion():
+    baseline = read_json(ROOT / "data/predictions/baseline.json")
+    regression = read_json(ROOT / "data/predictions/regression.json")
+    candidates = {prediction["case_id"]: prediction for prediction in regression["predictions"]}
+    changed = set()
+    for original in baseline["predictions"]:
+        candidate = candidates[original["case_id"]]
+        expected_record = original["record"].copy()
+        invoice_id = expected_record["invoice_id"]
+        if isinstance(invoice_id, str) and re.fullmatch(r"[0-9]+", invoice_id):
+            expected_record["invoice_id"] = str(int(invoice_id))
+        assert candidate["record"] == expected_record
+        assert candidate["evidence"] == original["evidence"]
+        if expected_record != original["record"]:
+            changed.add(original["case_id"])
+    assert changed == LEADING_ZERO_CASES
+
+
+def test_supplemental_duplicate_looking_cases_remain_two_distinct_invoices():
+    relative = "data/duplicate-looking-development.json"
+    data = read_json(ROOT / relative)
+    assert validate_dataset(data) is data
+    assert data["split"] == "development"
+    assert len(data["cases"]) == 2
+    first, second = data["cases"]
+    assert {first["case_id"], second["case_id"]} == {"DUPDEV-01", "DUPDEV-02"}
+    assert first["expected"]["invoice_id"] == "011842"
+    assert second["expected"]["invoice_id"] == "011843"
+    assert first["document"].replace("011842", "011843") == second["document"]
+    for field in FIELDS[1:]:
+        assert first["expected"][field] == second["expected"][field]
+    assert "duplicate_looking" in first["tags"] and "duplicate_looking" in second["tags"]
+    assert masked_template(first) == masked_template(second)
+    assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == SUPPLEMENT_SHA256
+    manifest = read_json(ROOT / "data/duplicate-looking-manifest.json")
+    assert manifest["files"][relative]["sha256"] == SUPPLEMENT_SHA256
+    assert manifest["files"][relative]["case_count"] == 2
+    assert manifest["construction_stage"] == (
+        "supplemental_development_only_after_primary_fixture_construction"
+    )
+    evaluation = dataset("evaluation")["cases"]
+    assert {family(first), family(second)}.isdisjoint(family(case) for case in evaluation)
+    for supplement in data["cases"]:
+        for case in evaluation:
+            assert SequenceMatcher(None, masked_template(supplement), masked_template(case),
+                                   autojunk=False).ratio() < 0.80

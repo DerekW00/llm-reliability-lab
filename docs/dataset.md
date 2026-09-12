@@ -1,7 +1,8 @@
 # Synthetic invoice dataset
 
-This corpus contains **20 development and 40 evaluation cases**. Every document,
-company name, label, and explanation was authored for this local demonstration.
+This corpus contains **60 primary cases (20 development, 40 evaluation), plus
+2 supplemental development cases: 22 development and 40 evaluation in total**.
+Every document, company name, label, and explanation was authored for this local demonstration.
 No private invoices, other repositories, scraped text, model responses, or live
 model APIs were used. Names are fictional; any resemblance is incidental.
 
@@ -26,7 +27,18 @@ The manifest records a UTC construction timestamp. Git history establishes the
 ordered authoring stages. Checksums detect byte changes; neither a timestamp nor
 a checksum is a signed attestation of provenance or label correctness.
 
-Each case has one unique `family:` tag describing its authored layout. The
+The primary freeze is signed commit `c2c4c4f26abbe413eb8db02e1b2570f3ffd458b2`.
+`data/duplicate-looking-development.json` adds two supplemental development cases
+whose slips differ only by the invoice ID (`011842` versus `011843`). They share
+supplier, amount, currency, and deadline; their visual similarity must not merge
+two distinct invoices. The initial delegated specification omitted this requested
+coverage. This development-only correction was authored **after primary fixture
+construction**, before any evaluator scores were computed, with no evaluation
+score tuning. It has its own raw-byte freeze in `data/duplicate-looking-manifest.json`.
+The original primary data, primary manifest, policy, and prediction bytes remain
+unchanged. No prediction fixture is supplied for the supplemental pair.
+
+Each primary case has one unique `family:` tag describing its authored layout. The
 splits use different document families, field ordering, phrasing, and structures:
 development includes cards, email, a column table, fax, and portal export;
 evaluation includes remittance directions, docket brackets, a receipt terminal,
@@ -39,6 +51,9 @@ parameter-only swap control confirms the mask detects that kind of duplication.
 Family separation and this heuristic reduce obvious template reuse. They do not
 prove semantic independence. Evaluation cases are a fixed demonstration split,
 **not a statistically representative or blind held-out model benchmark**.
+The supplemental pair deliberately shares one additional development family.
+It is near-identical within development; its family and masked templates remain
+separate from evaluation.
 
 ## Label and evidence conventions
 
@@ -100,6 +115,33 @@ model error rate or justify adjusting the frozen release thresholds.
 | Literal source instructions | DEV-12 | EVAL-08, EVAL-32 |
 | Prior, void, or unrelated invoice references | DEV-19 | EVAL-24, EVAL-39 |
 | Entirely missing record | — | EVAL-30 |
+| Duplicate-looking distinct invoices | DUPDEV-01, DUPDEV-02 (supplement) | — |
+
+## Static prediction fixtures
+
+The three files under `data/predictions/` contain full, validated predictions for
+all 40 evaluation cases. Their separate `manifest.json` records raw-byte digests,
+the primary data freeze commit, the known supplier error, and construction timing.
+They are **synthetic fixture predictions, not responses produced by an LLM**.
+
+- `baseline.json` started as a one-time copy of the frozen reference records and
+  evidence during fixture authoring. EVAL-02's supplier was deliberately changed
+  from `Copper Vale Binding` to `Copper Vale Bindery`. This is the only mismatch.
+- `regression.json` applied a single postprocessing mechanism to baseline: for
+  each non-null invoice ID matching ASCII `[0-9]+`, replace it with
+  `str(int(invoice_id))`. This changes exactly eight identifiers, including
+  `0000` to `0`, and retains the baseline supplier error. Plain `429`,
+  alphanumeric `00A-21`, punctuated `000-51`, and null IDs remain unchanged.
+- `repaired.json` removes that coercion step while retaining the baseline's
+  supplier imperfection and evidence. Its records exactly match baseline.
+  The repair is a simulated fixture construction change, not a live model fix.
+
+The authoring transformation is not an evaluator path or an installed generator.
+Tests verify its mechanism against the static files and prohibit extra record
+changes. The fixtures retain their original evidence references even for wrong
+predictions; this intentionally illustrates that a valid line number alone does
+not establish that the cited text supports the predicted value. Only expected
+labels and the evaluator's comparisons determine fixture correctness.
 
 ## Limitations
 

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "constructed_at_utc": "2026-09-12T05:20:14.567333+00:00",
+  "dataset_freeze_commit": "c2c4c4f26abbe413eb8db02e1b2570f3ffd458b2",
+  "mode": "synthetic_fixture",
+  "source": "One-time label-derived fixture authoring after dataset freeze; not model outputs.",
+  "baseline_error": {
+    "case_id": "EVAL-02",
+    "field": "supplier_name",
+    "expected": "Copper Vale Binding",
+    "actual": "Copper Vale Bindery"
+  },
+  "regression_mechanism": "For ASCII digit-only invoice IDs, apply str(int(invoice_id)).",
+  "repair": "Remove numeric coercion; retain baseline supplier error and original evidence.",
+  "evaluation_boundary": "Read static complete files; never derive predictions from labels at evaluation time.",
+  "sha256_kind": "raw_file_bytes",
+  "files": {
+    "data/predictions/baseline.json": "f39542c5f9c7ed633f96629fe2a7ba29913610fb77c56ebe15a5e7a4389a18ca",
+    "data/predictions/regression.json": "26ce19c971de3e4d1f07bfc1be320d07b7687db3a07d65e457ce0a7aa64629c4",
+    "data/predictions/repaired.json": "0977102b09d3ee9f9699b630c5f43036f38fbc0afc4f367405ed6b59a4bcd7f7"
+  }
+}
