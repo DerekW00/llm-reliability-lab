@@ -4,7 +4,7 @@
 Authored fixtures, no live model calls. These scores are not model accuracy or production evidence.
 
 **Decision: REJECTED**
-Dataset: synthetic\-invoices\-evaluation\-v1; split: evaluation; scenario: regression.
+Dataset: "synthetic\-invoices\-evaluation\-v1"; split: evaluation; scenario: "regression".
 
 ## Coverage and metrics
 
@@ -60,111 +60,111 @@ Failed rules:
 
 Showing 9 of 9 field differences, critical first. The JSON report contains every difference.
 
-### EVAL\-01 / invoice\_id (CRITICAL)
+### "EVAL\-01" / invoice\_id (CRITICAL)
 
 Category: identifier\_format. Expected: "000482"; actual: "482".
 
 Action: Keep invoice IDs as strings through postprocessing; preserve leading zeros\.
 
 - Expected evidence lines: \[3\].
-  - Line 3: Enter 000482 in the invoice\-number field of the transfer\.
+  - Line 3: "Enter 000482 in the invoice\-number field of the transfer\."
 - Actual evidence lines: \[3\].
-  - Line 3: Enter 000482 in the invoice\-number field of the transfer\.
+  - Line 3: "Enter 000482 in the invoice\-number field of the transfer\."
 
-### EVAL\-04 / invoice\_id (CRITICAL)
+### "EVAL\-04" / invoice\_id (CRITICAL)
 
 Category: identifier\_format. Expected: "001090"; actual: "1090".
 
 Action: Keep invoice IDs as strings through postprocessing; preserve leading zeros\.
 
 - Expected evidence lines: \[2\].
-  - Line 2: Receipt for invoice no\. 001090
+  - Line 2: "Receipt for invoice no\. 001090"
 - Actual evidence lines: \[2\].
-  - Line 2: Receipt for invoice no\. 001090
+  - Line 2: "Receipt for invoice no\. 001090"
 
-### EVAL\-09 / invoice\_id (CRITICAL)
+### "EVAL\-09" / invoice\_id (CRITICAL)
 
 Category: identifier\_format. Expected: "000063"; actual: "63".
 
 Action: Keep invoice IDs as strings through postprocessing; preserve leading zeros\.
 
 - Expected evidence lines: \[2\].
-  - Line 2: 000063
+  - Line 2: "000063"
 - Actual evidence lines: \[2\].
-  - Line 2: 000063
+  - Line 2: "000063"
 
-### EVAL\-12 / invoice\_id (CRITICAL)
+### "EVAL\-12" / invoice\_id (CRITICAL)
 
 Category: identifier\_format. Expected: "007501"; actual: "7501".
 
 Action: Keep invoice IDs as strings through postprocessing; preserve leading zeros\.
 
 - Expected evidence lines: \[2\].
-  - Line 2: Card slot I: invoice 007501
+  - Line 2: "Card slot I: invoice 007501"
 - Actual evidence lines: \[2\].
-  - Line 2: Card slot I: invoice 007501
+  - Line 2: "Card slot I: invoice 007501"
 
-### EVAL\-17 / invoice\_id (CRITICAL)
+### "EVAL\-17" / invoice\_id (CRITICAL)
 
 Category: identifier\_format. Expected: "003008"; actual: "3008".
 
 Action: Keep invoice IDs as strings through postprocessing; preserve leading zeros\.
 
 - Expected evidence lines: \[3\].
-  - Line 3: Document node: invoice 003008
+  - Line 3: "Document node: invoice 003008"
 - Actual evidence lines: \[3\].
-  - Line 3: Document node: invoice 003008
+  - Line 3: "Document node: invoice 003008"
 
-### EVAL\-23 / invoice\_id (CRITICAL)
+### "EVAL\-23" / invoice\_id (CRITICAL)
 
 Category: identifier\_format. Expected: "000905"; actual: "905".
 
 Action: Keep invoice IDs as strings through postprocessing; preserve leading zeros\.
 
 - Expected evidence lines: \[2\].
-  - Line 2: invoice\[id\] 000905 ; terms\[due\] 2026\-12\-23
+  - Line 2: "invoice\[id\] 000905 ; terms\[due\] 2026\-12\-23"
 - Actual evidence lines: \[2\].
-  - Line 2: invoice\[id\] 000905 ; terms\[due\] 2026\-12\-23
+  - Line 2: "invoice\[id\] 000905 ; terms\[due\] 2026\-12\-23"
 
-### EVAL\-31 / invoice\_id (CRITICAL)
+### "EVAL\-31" / invoice\_id (CRITICAL)
 
 Category: identifier\_format. Expected: "0000"; actual: "0".
 
 Action: Keep invoice IDs as strings through postprocessing; preserve leading zeros\.
 
 - Expected evidence lines: \[2\].
-  - Line 2: Tab belongs to invoice 0000\.
+  - Line 2: "Tab belongs to invoice 0000\."
 - Actual evidence lines: \[2\].
-  - Line 2: Tab belongs to invoice 0000\.
+  - Line 2: "Tab belongs to invoice 0000\."
 
-### EVAL\-37 / invoice\_id (CRITICAL)
+### "EVAL\-37" / invoice\_id (CRITICAL)
 
 Category: identifier\_format. Expected: "000712"; actual: "712".
 
 Action: Keep invoice IDs as strings through postprocessing; preserve leading zeros\.
 
 - Expected evidence lines: \[2\].
-  - Line 2: We endorse invoice 000712 for payment\.
+  - Line 2: "We endorse invoice 000712 for payment\."
 - Actual evidence lines: \[2\].
-  - Line 2: We endorse invoice 000712 for payment\.
+  - Line 2: "We endorse invoice 000712 for payment\."
 
-### EVAL\-02 / supplier\_name (noncritical)
+### "EVAL\-02" / supplier\_name (noncritical)
 
 Category: wrong\_value. Expected: "Copper Vale Binding"; actual: "Copper Vale Bindery".
 
 Action: Check supplier selection and spelling against the cited source\.
 
 - Expected evidence lines: \[1\].
-  - Line 1: \[ seller = Copper Vale Binding \]
+  - Line 1: "\[ seller = Copper Vale Binding \]"
 - Actual evidence lines: \[1\].
-  - Line 1: \[ seller = Copper Vale Binding \]
+  - Line 1: "\[ seller = Copper Vale Binding \]"
 
 
 ## Reproducibility and limits
 
-Timestamp (UTC): 2026\-09\-12T05:33:09\.055170Z.
-Code revision: "9b1ec55b221e98c7a0ce46fa34b1623002e55a44"; working tree dirty: false; Python: 3\.12\.14.
-Evaluation time: 0.058191 seconds (fixture\_evaluation); this is not model latency.
+Timestamp (UTC): 2026\-09\-12T10:24:16\.197819Z.
+Code revision: "5ce81ab5057a822c5c115bcff4d22f35a0d31c68"; working tree dirty: false; Python: 3\.12\.14.
+Evaluation time: 0.045010 seconds (fixture\_evaluation); this is not model latency.
 
 - dataset\_sha256: 9007d10d0528565e20efc317a01e917f55586db0d6ff2a83e862bb65980ed88f
 - predictions\_sha256: 2b89cc4c330040e9f27e1d63b0d9f9e3611a0f7a8d4d64a07efea2ff9e24b855
