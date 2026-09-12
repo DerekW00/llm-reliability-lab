@@ -134,17 +134,21 @@ def test_compare_preserves_returned_rejection(monkeypatch, tmp_path, inputs, rep
 
 
 @pytest.mark.parametrize("content", [None, "{", '{"a":1,"a":2}', '{"a":NaN}', "[]"])
-def test_bad_input_returns_two_without_stale_pass(capsys, tmp_path, inputs, content):
+def test_bad_input_returns_two_without_stale_pass(capsys, tmp_path, inputs, content, report):
     if content is None:
         inputs["dataset"].unlink()
     else:
         inputs["dataset"].write_text(content)
     output_dir = tmp_path / "out"
     output_dir.mkdir()
-    for suffix in ("json", "md"):
-        (output_dir / f"evaluation.{suffix}").write_text("old accepted report")
+    # Both sit at the reserved output names, so the two outcomes are told apart here:
+    # a real stale pass must go, and something that is not a report must not.
+    (output_dir / "evaluation.json").write_text(json.dumps(report), encoding="utf-8")
+    keepsake = output_dir / "evaluation.md"
+    keepsake.write_text("# LLM Reliability Lab meeting notes\n\nKeep me.\n", encoding="utf-8")
     assert cli.main(evaluate_args(inputs, output_dir)) == 2
-    assert list(output_dir.iterdir()) == []
+    assert sorted(path.name for path in output_dir.iterdir()) == ["evaluation.md"]
+    assert keepsake.read_text(encoding="utf-8").endswith("Keep me.\n")
     result = capsys.readouterr()
     assert "Error:" in result.err and "No fresh report" in result.err
     assert "Traceback" not in result.err
@@ -287,7 +291,8 @@ def test_error_messages_are_terminal_safe(monkeypatch, capsys, tmp_path, inputs)
     assert cli.main(evaluate_args(inputs, tmp_path / "out")) == 2
     error = capsys.readouterr().err
     assert "\x1b" not in error and "\u202e" not in error
-    assert "\\x1b" in error and "\\u202e" in error
+    # JSON notation, so the escape is reversible as well as inert.
+    assert "\\u001b" in error and "\\u202e" in error
 
 
 def test_module_help_works_outside_repository(tmp_path):

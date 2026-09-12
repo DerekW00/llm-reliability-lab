@@ -42,6 +42,18 @@ def safe_text(value: object) -> str:
     return "".join(pieces)
 
 
+def quoted(value: object) -> str:
+    """Reversible ASCII notation for terminal output, where Markdown does not apply.
+
+    `safe_text` makes text inert but not unambiguous: a real ESC and the literal
+    characters of its escape print alike. JSON notation is inert for the same reason
+    (it escapes controls and non-ASCII) and, unlike bare escaping, parses back to the
+    exact string it names, so two paths differing only by a control character can be
+    told apart in a diagnostic.
+    """
+    return json.dumps(str(value), ensure_ascii=True)
+
+
 def _md(value: object) -> str:
     text = html.escape(safe_text(value), quote=False)
     return re.sub(r"([\\`*_{}\[\]()#+.!|~>-])", r"\\\1", text)
