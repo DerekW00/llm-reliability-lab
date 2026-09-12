@@ -41,3 +41,19 @@
 - All three implementers finished; no project servers or model processes.
 - Next: fresh independent adversarial review and clean-environment quickstart,
   then any confirmed fixes, final reports and commit/identity audit.
+
+## 2026-09-11 — Independent finding fixed; final artifacts
+
+- Fresh review recorded its independent first pass before implementer conclusions.
+- Reviewer found a real checkout-provenance bug: a Git pathspec was relative to
+  the wrong directory, returning null revision. Parent reproduced; evaluation
+  owner fixed it in 9b1ec55. Parent now verifies exact HEAD and clean/dirty state.
+  Reviewer closure and remaining acceptance probes are still in progress.
+- Exact README quickstart rerun: sync0, baseline0, regression1, repaired0,
+  rejected comparison1, pytest0 (181 passed). General evaluate0, Ruff0, build0,
+  network-instrumented CLI script0. Results and frozen checksums unchanged.
+- Three example report pairs generated from clean 9b1ec55 source and preserved
+  with their actual provenance. Root output reports remain ignored; examples tracked.
+- Active: fresh reviewer only; implementation/fix workers finished. No servers.
+- Next: integrate review evidence and any further confirmed fixes, then complete
+  FINAL_REPORT.md and inspect the final commit graph and all identities.

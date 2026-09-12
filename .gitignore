@@ -5,5 +5,5 @@ __pycache__/
 .ruff_cache/
 dist/
 *.egg-info/
-reports/
+/reports/
 .DS_Store
