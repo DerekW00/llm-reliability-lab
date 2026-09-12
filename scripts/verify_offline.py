@@ -17,21 +17,34 @@ GUARD = """
 import socket
 def blocked(*args, **kwargs):
     raise RuntimeError('OFFLINE GUARD: runtime network access forbidden')
-socket.socket.connect = blocked
-socket.socket.connect_ex = blocked
-socket.create_connection = blocked
-socket.getaddrinfo = blocked
+for name in ('connect', 'connect_ex', 'send', 'sendall', 'sendto'):
+    setattr(socket.socket, name, blocked)
+for name in ('create_connection', 'getaddrinfo', 'gethostbyname', 'gethostbyname_ex',
+             'gethostbyaddr', 'getfqdn', 'getnameinfo'):
+    setattr(socket, name, blocked)
 from reliability_lab.cli import main
 raise SystemExit(main())
 """
 
+# The child needs only enough environment to locate an interpreter, Git and a
+# temporary directory. An allowlist keeps unrelated provider credentials out;
+# a name denylist cannot, because most credential names are unpredictable.
+PASSTHROUGH = ("PATH", "HOME", "TMPDIR", "SYSTEMROOT", "COMSPEC")
+
+
+class CheckFailed(RuntimeError):
+    """A verification check failed. Not an assert: it must survive `python -O`."""
+
+
+def require(condition: object, message: str) -> None:
+    if not condition:
+        raise CheckFailed(message)
+
 
 def main() -> int:
-    environment = {
-        key: value for key, value in os.environ.items()
-        if not any(part in key.upper() for part in ("API_KEY", "API_TOKEN", "ACCESS_TOKEN"))
-    }
+    environment = {key: os.environ[key] for key in PASSTHROUGH if key in os.environ}
     environment["UV_OFFLINE"] = "1"
+    environment["LANG"] = "en_US.UTF-8"
     with tempfile.TemporaryDirectory(prefix="reliability-offline-") as temporary:
         out = Path(temporary) / "reports"
         commands = [
@@ -50,11 +63,11 @@ def main() -> int:
                 print(completed.stderr, file=sys.stderr)
                 return 1
         for scenario in ("baseline", "regression", "repaired"):
-            report = json.loads((out / f"{scenario}.json").read_text())
-            assert report["mode"] == "synthetic_fixture"
-            assert report["provenance"]["live_calls"] is False
-            assert report["provenance"]["model"] is None
-    print("Offline subprocess checks passed; no provider credentials were needed.")
+            report = json.loads((out / f"{scenario}.json").read_text(encoding="utf-8"))
+            require(report["mode"] == "synthetic_fixture", f"{scenario}: mode is not a fixture")
+            require(report["provenance"]["live_calls"] is False, f"{scenario}: live_calls set")
+            require(report["provenance"]["model"] is None, f"{scenario}: a model was recorded")
+    print("Offline subprocess checks passed; no provider credentials were forwarded.")
     return 0
 
 

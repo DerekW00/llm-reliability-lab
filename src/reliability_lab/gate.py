@@ -14,6 +14,11 @@ from .contracts import FIELDS, InputError, fingerprint
 # Bound replay cost and reject recursive Python objects before copying them.
 MAX_BASELINE_DEPTH = 16
 MAX_JSON_DEPTH = 128
+# Depth alone does not bound work: a supplied Python object may reference the same
+# acyclic child twice per level, which the walk re-visits 2**depth times while
+# staying far under MAX_JSON_DEPTH. The deepest legitimate report measures about
+# thirty thousand nodes, so this leaves ample headroom.
+MAX_JSON_NODES = 1_000_000
 
 
 def _metric_fraction(report: dict, metric: str, field: str | None = None) -> Fraction | None:
@@ -96,9 +101,13 @@ def _apply_comparison(baseline: dict, candidate: dict) -> dict:
 
 
 def _json_tree(value: Any, *, path: str = "report", depth: int = 0,
-               active: set[int] | None = None) -> None:
+               active: set[int] | None = None, budget: list[int] | None = None) -> None:
     if depth > MAX_JSON_DEPTH:
         raise InputError(f"{path}: excessive JSON nesting")
+    budget = [MAX_JSON_NODES] if budget is None else budget
+    budget[0] -= 1
+    if budget[0] < 0:
+        raise InputError(f"{path}: report exceeds {MAX_JSON_NODES} values to validate")
     if value is None or type(value) in (str, int, bool):
         if isinstance(value, str):
             try:
@@ -121,7 +130,8 @@ def _json_tree(value: Any, *, path: str = "report", depth: int = 0,
         for key, item in items:
             if isinstance(value, dict) and type(key) is not str:
                 raise InputError(f"{path}: object key must be a string")
-            _json_tree(item, path=f"{path}.{key}", depth=depth + 1, active=active)
+            _json_tree(item, path=f"{path}.{key}", depth=depth + 1, active=active,
+                       budget=budget)
     finally:
         active.remove(id(value))
 

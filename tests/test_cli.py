@@ -36,11 +36,12 @@ def report() -> dict:
         "diffs": [],
         "gate": {
             "accepted": True, "reasons": [],
-            "checks": [{"name": "critical_failures", "passed": True, "actual": 0, "required": 0}],
+            "checks": [{"name": "critical_failure_count", "passed": True,
+                        "actual": 0, "required": 0}],
         },
         "provenance": {
             "dataset_sha256": "a" * 64, "predictions_sha256": "b" * 64,
-            "policy_sha256": "c" * 64, "timestamp_utc": "2026-09-11T00:00:00+00:00",
+            "policy_sha256": "c" * 64, "timestamp_utc": "2026-09-11T00:00:00Z",
             "code_revision": None, "working_tree_dirty": None, "python_version": "3.12.14",
             "evaluation_seconds": 0.001, "timing_kind": "fixture_evaluation", "provider": None,
             "model": None, "live_calls": False,

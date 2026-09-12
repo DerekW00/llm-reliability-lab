@@ -230,13 +230,13 @@ def read_json(path: str | Path) -> dict:
 
 def fingerprint(artifact: dict) -> str:
     """Hash payload content independently of object keys and case-array ordering."""
-    value = dict(artifact)
-    for key in ("cases", "predictions"):
-        if isinstance(value.get(key), list):
-            value[key] = sorted(value[key], key=lambda item: item["case_id"])
     try:
+        value = dict(artifact)
+        for key in ("cases", "predictions"):
+            if isinstance(value.get(key), list):
+                value[key] = sorted(value[key], key=lambda item: item["case_id"])
         encoded = json.dumps(value, ensure_ascii=False, sort_keys=True,
                              separators=(",", ":"), allow_nan=False).encode("utf-8")
-    except (TypeError, ValueError, UnicodeError) as exc:
+    except (AttributeError, KeyError, TypeError, ValueError, UnicodeError) as exc:
         raise InputError(f"Cannot fingerprint artifact: {exc}") from exc
     return hashlib.sha256(encoded).hexdigest()

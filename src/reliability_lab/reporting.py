@@ -15,12 +15,23 @@ from .contracts import FIELDS, InputError
 
 
 def safe_text(value: object) -> str:
-    """Make supplied text inert in a terminal, including ANSI and bidi controls."""
+    """Make supplied text inert in a terminal, including ANSI and bidi controls.
+
+    Escapes are unambiguous: a fixed width per prefix, and a literal backslash is
+    escaped too, so distinct inputs never render as the same inspectable text.
+    """
     pieces = []
     for char in str(value):
-        if unicodedata.category(char).startswith("C") or char in "\u2028\u2029":
-            code = ord(char)
-            pieces.append(f"\\x{code:02x}" if code <= 255 else f"\\u{code:04x}")
+        code = ord(char)
+        if char == "\\":
+            pieces.append("\\\\")
+        elif unicodedata.category(char).startswith("C") or char in "\u2028\u2029":
+            if code <= 0xFF:
+                pieces.append(f"\\x{code:02x}")
+            elif code <= 0xFFFF:
+                pieces.append(f"\\u{code:04x}")
+            else:
+                pieces.append(f"\\U{code:08x}")
         else:
             pieces.append(char)
     return "".join(pieces)
@@ -33,6 +44,14 @@ def _md(value: object) -> str:
 
 def _value(value: object) -> str:
     return _md(json.dumps(value, ensure_ascii=False, allow_nan=False, sort_keys=True))
+
+
+def _seconds(value: object) -> str:
+    """Validation admits any finite JSON number here, including ints too big for a float."""
+    try:
+        return f"{float(value):.6f}"
+    except (OverflowError, TypeError, ValueError):
+        return safe_text(value)
 
 
 def _rate(value: float | None, numerator: int, denominator: int) -> str:
@@ -177,7 +196,7 @@ def render_report(report: dict) -> str:
         f"Code revision: {_value(provenance['code_revision'])}; "
         f"working tree dirty: {_value(provenance['working_tree_dirty'])}; "
         f"Python: {_md(provenance['python_version'])}.",
-        f"Evaluation time: {provenance['evaluation_seconds']:.6f} seconds "
+        f"Evaluation time: {_seconds(provenance['evaluation_seconds'])} seconds "
         f"({_md(provenance['timing_kind'])}); this is not model latency.",
         "",
     ]
@@ -245,7 +264,9 @@ def write_reports(
                 handle.write(payload)
         for path, temp in zip(paths, temporary, strict=True):
             os.replace(temp, path)
-    except Exception:
+    except BaseException:
+        # Also rolls back on KeyboardInterrupt between the two renames, which
+        # would otherwise leave a published JSON with no Markdown beside it.
         clear_reports(paths)
         raise
     finally:

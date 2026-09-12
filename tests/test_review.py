@@ -464,3 +464,199 @@ def test_review_duplicate_looking_cases_are_two_independent_obligations():
     supplied["predictions"].pop()
     with pytest.raises(InputError, match="missing case"):
         evaluate(data, supplied, policy)
+
+
+# --- Second independent review pass: regressions for reproduced defects ---
+
+
+def test_review_display_failure_keeps_published_report_and_verdict(tmp_path):
+    """Publication is irreversible; only display can still fail after it."""
+    dataset, supplied, policy = inputs()
+    dataset["dataset_id"] = supplied["dataset_id"] = "café-set"
+    for name, payload in (("d.json", dataset), ("p.json", supplied), ("pol.json", policy)):
+        (tmp_path / name).write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    args = ["evaluate", "--dataset", str(tmp_path / "d.json"),
+            "--predictions", str(tmp_path / "p.json"), "--policy", str(tmp_path / "pol.json"),
+            "--output-dir", str(tmp_path / "out"), "--name", "published"]
+    environment = {"PATH": os.environ["PATH"], "LANG": "en_US.UTF-8", "PYTHONIOENCODING": "ascii"}
+    result = subprocess.run([sys.executable, "-m", "reliability_lab.cli", *args], cwd=tmp_path,
+                            env=environment, capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    assert "No fresh report was produced" not in result.stderr
+    for suffix in ("json", "md"):
+        assert (tmp_path / "out" / f"published.{suffix}").is_file()
+    assert json.loads((tmp_path / "out/published.json").read_text(encoding="utf-8"))["gate"]["accepted"]
+
+
+def test_review_closed_stdout_keeps_documented_exit_codes(tmp_path):
+    """A reader hanging up must not turn a verdict into an undocumented status."""
+    out = tmp_path / "piped"
+    for scenario, expected in (("baseline", 0), ("regression", 1)):
+        process = subprocess.Popen(
+            [sys.executable, "-m", "reliability_lab.cli", "demo", "--scenario", scenario,
+             "--output-dir", str(out)],
+            cwd=tmp_path, env={"PATH": os.environ["PATH"], "LANG": "en_US.UTF-8"},
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process.stdout.close()
+        process.communicate(timeout=30)
+        assert process.returncode == expected, scenario
+        assert (out / f"{scenario}.json").is_file()
+
+
+def test_review_unavailable_bundled_resource_removes_stale_pass(tmp_path, monkeypatch):
+    """A failure before the outputs are reserved must still clear an old acceptance."""
+    from reliability_lab import cli as cli_module
+
+    out = tmp_path / "demo"
+    assert cli_module.main(["demo", "--scenario", "baseline", "--output-dir", str(out)]) == 0
+    assert json.loads((out / "baseline.json").read_text(encoding="utf-8"))["gate"]["accepted"]
+
+    def unavailable(relative):
+        raise InputError(f"Missing bundled resource: {relative}")
+
+    monkeypatch.setattr(cli_module, "resource_path", unavailable)
+    assert cli_module.main(["demo", "--scenario", "baseline", "--output-dir", str(out)]) == 2
+    assert sorted(path.name for path in out.iterdir()) == []
+
+
+@pytest.mark.parametrize("left, right", [
+    ("\U000e0041", "" + "1"),
+    ("\U0001d173", "ᴗ" + "3"),
+    ("\n", "\\x0a"),
+    ("‮", "\\u202e"),
+])
+def test_review_inert_text_escapes_stay_distinguishable(left, right):
+    """Two different documents must never render as the same inspectable text."""
+    from reliability_lab.reporting import safe_text
+
+    assert left != right
+    assert safe_text(left) != safe_text(right)
+
+
+@pytest.mark.parametrize("artifact", [
+    {"cases": [{"missing_case_id": "x"}]},
+    {"predictions": ["not-an-object"]},
+    {"cases": [[1]]},
+])
+def test_review_fingerprint_reports_malformed_artifacts_as_input_errors(artifact):
+    """contracts is the validation authority; its public functions raise InputError."""
+    from reliability_lab.contracts import fingerprint
+
+    with pytest.raises(InputError, match="Cannot fingerprint artifact"):
+        fingerprint(artifact)
+
+
+@pytest.mark.parametrize("gate", ["scripts/verify_offline.py",
+                                  "tests/review_support/verify_wheel.py"])
+def test_review_verification_gates_are_not_disabled_by_optimized_python(gate):
+    """`python -O` strips asserts; a gate built on them would silently pass."""
+    source = (ROOT / gate).read_text(encoding="utf-8")
+    assert "\nassert " not in source and not source.lstrip().startswith("assert ")
+    probe = (
+        "import importlib.util, sys;"
+        f"spec = importlib.util.spec_from_file_location('gate', {str(ROOT / gate)!r});"
+        "module = importlib.util.module_from_spec(spec);"
+        "spec.loader.exec_module(module);"
+        "module.require(False, 'must still fire');"
+    )
+    result = subprocess.run([sys.executable, "-O", "-c", probe], capture_output=True,
+                            text=True, timeout=30)
+    assert result.returncode != 0
+    assert "must still fire" in result.stderr
+
+
+def test_review_offline_gate_forwards_no_provider_credentials():
+    """An allowlist is the only scrub that holds for credential names nobody predicted."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("verify_offline",
+                                                  ROOT / "scripts/verify_offline.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    leaked = [name for name in (
+        "OPENAI_API_KEY", "ANTHROPIC_AUTH_TOKEN", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
+        "GITHUB_TOKEN", "GH_TOKEN", "HF_TOKEN", "GOOGLE_APPLICATION_CREDENTIALS",
+        "AZURE_OPENAI_KEY", "OPENAI_BASE_URL",
+    ) if name in module.PASSTHROUGH]
+    assert leaked == []
+    for name in ("connect", "sendall", "sendto", "gethostbyname", "getaddrinfo", "getfqdn"):
+        assert f"'{name}'" in module.GUARD, name
+
+
+def test_review_interrupted_publication_leaves_no_half_written_pair(tmp_path, monkeypatch):
+    """Ctrl-C between the two renames must not publish a JSON with no Markdown."""
+    from reliability_lab import reporting
+
+    report = evaluate(*inputs())
+    replace, calls = reporting.os.replace, 0
+
+    def interrupt_after_first(source, destination):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise KeyboardInterrupt
+        replace(source, destination)
+
+    monkeypatch.setattr(reporting.os, "replace", interrupt_after_first)
+    with pytest.raises(KeyboardInterrupt):
+        reporting.write_reports(report, tmp_path, "interrupted")
+    assert sorted(path.name for path in tmp_path.iterdir()) == []
+
+
+def test_review_oversized_duration_renders_instead_of_crashing():
+    """The validator admits any finite JSON number here, so the renderer must cope."""
+    report = evaluate(*inputs())
+    report["provenance"]["evaluation_seconds"] = 10 ** 4000
+    lines = render_report(report).splitlines()
+    line = next(text for text in lines if text.startswith("Evaluation time"))
+    assert "1" + "0" * 40 in line
+
+
+def test_review_shared_report_references_do_not_explode_replay_cost():
+    """The depth cap bounds path length; only a work budget bounds total effort."""
+    from reliability_lab.gate import MAX_JSON_DEPTH, _json_tree
+
+    node = {"leaf": 1}
+    for _ in range(40):
+        node = {"x": node, "y": node}
+    assert 40 < MAX_JSON_DEPTH
+    with pytest.raises(InputError, match="values to validate"):
+        _json_tree(node)
+
+
+def test_review_deepest_legitimate_comparison_chain_still_validates():
+    """The budget must not reject a report the tool itself can produce."""
+    from reliability_lab.gate import MAX_JSON_NODES, _json_tree
+
+    dataset, supplied, policy = inputs()
+    chain = evaluate(dataset, supplied, policy)
+    for _ in range(4):
+        chain = evaluate(dataset, supplied, policy, baseline=chain)
+    _json_tree(chain)
+    assert MAX_JSON_NODES > 100_000
+
+
+def test_review_baseline_argument_help_names_the_artifact_it_wants(capsys):
+    """`--baseline` takes a report; data/predictions/baseline.json is a decoy."""
+    from reliability_lab import cli as cli_module
+
+    with pytest.raises(SystemExit):
+        cli_module.main(["evaluate", "--help"])
+    helped = " ".join(capsys.readouterr().out.split())
+    assert "REPORT JSON to compare against" in helped
+    assert "not a predictions file" in helped
+    for flag in ("--dataset", "--predictions", "--policy", "--output-dir"):
+        assert f"{flag} " in helped
+
+
+def test_review_predictions_file_as_baseline_is_rejected_not_scored(tmp_path):
+    """The decoy must fail closed rather than silently produce a comparison."""
+    args = ["evaluate", "--dataset", str(ROOT / "data/evaluation.json"),
+            "--predictions", str(ROOT / "data/predictions/repaired.json"),
+            "--policy", str(ROOT / "policy.json"),
+            "--baseline", str(ROOT / "data/predictions/baseline.json"),
+            "--output-dir", str(tmp_path / "out")]
+    result = invoke(args, tmp_path)
+    assert result.returncode == 2
+    assert "Traceback" not in result.stderr
+    assert not (tmp_path / "out").exists() or list((tmp_path / "out").iterdir()) == []
