@@ -130,6 +130,9 @@ are reproducibility artifacts, not signed evidence or secure attestation.
 Comparison requires same dataset fingerprint, same policy fingerprint and same
 mode, and an accepted baseline. `compare_reports` returns a re-evaluated candidate
 report with comparison checks; cannot erase an existing valid rejection.
+If a candidate already embeds a baseline, comparison against a different baseline
+is an input error. Comparing it to the same deterministic baseline content is
+allowed; variable timestamps, durations and code provenance do not change identity.
 Use lazy imports between evaluation and gate if needed to avoid circular imports.
 
 Experience agent implements `cli.py`, `reporting.py`. CLI:
