@@ -14,7 +14,12 @@ Each case: `{case_id: str, document: str, tags: [str,...], expected: Record,
 evidence: Evidence, rationale: str}`. IDs are nonblank and unique. Documents are
 nonempty lines of newly authored fictional business material. Rationale explains
 labels, especially abstentions. 20 development and 40 evaluation cases; distinct
-document families/layouts across splits rather than parameter swaps. The dataset
+document families/layouts across splits rather than parameter swaps. A separate,
+frozen two-case development supplement covers duplicate-looking documents with
+distinct invoice IDs (22 development cases total; 40 evaluation cases unchanged).
+The original contract omitted this requested edge case; the supplement corrects
+that omission without altering the primary freeze, policy or evaluation data.
+The dataset
 agent writes and freezes documents, labels and checksums before constructing
 fixture predictions. Gate policy and normalization freeze precede the data.
 
