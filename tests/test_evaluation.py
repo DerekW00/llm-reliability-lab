@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import copy
+import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -249,4 +251,36 @@ def test_installed_untracked_module_has_unknown_git_provenance(monkeypatch):
         return type("Result", (), {"stdout": str(Path(evaluation.__file__).resolve().parents[3])})()
 
     monkeypatch.setattr(evaluation.subprocess, "run", git_run)
+    assert evaluation._code_provenance() == (None, None)
+
+
+def test_real_checkout_provenance_reports_head_dirty_state_and_untracked_install(monkeypatch, tmp_path):
+    source_root = Path(__file__).resolve().parents[1]
+    checkout = tmp_path / "checkout"
+    environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+
+    def git(*arguments):
+        return subprocess.run(["git", *arguments], check=True, capture_output=True,
+                              text=True, env=environment).stdout.strip()
+
+    # A local clone provides a real clean checkout without committing or changing
+    # the shared source tree. No transport or provider connection is involved.
+    git("clone", "--local", "--no-hardlinks", "--", str(source_root), str(checkout))
+    expected_head = git("-C", str(checkout), "rev-parse", "HEAD")
+    tracked_module = checkout / "src" / "reliability_lab" / "evaluation.py"
+    monkeypatch.setattr(evaluation, "__file__", str(tracked_module))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("GIT_DIR", str(tmp_path / "nonexistent.git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(tmp_path / "nonexistent-tree"))
+    assert evaluation._code_provenance() == (expected_head, False)
+
+    tracked_module.write_text(tracked_module.read_text() + "\n# Authored dirty-state test.\n")
+    assert evaluation._code_provenance() == (expected_head, True)
+
+    # An untracked wheel-style installation inside this same real repository
+    # must not inherit its HEAD, even though a checkout was discovered above it.
+    installed_module = checkout / "site-packages" / "reliability_lab" / "evaluation.py"
+    installed_module.parent.mkdir(parents=True)
+    installed_module.write_text("# Authored installed-module test.\n")
+    monkeypatch.setattr(evaluation, "__file__", str(installed_module))
     assert evaluation._code_provenance() == (None, None)
