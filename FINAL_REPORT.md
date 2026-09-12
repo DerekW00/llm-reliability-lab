@@ -1,21 +1,33 @@
 # LLM Reliability Lab — local handoff
 
-## Review follow-up — 2026-09-12 Pacific
+## Review follow-up — complete, 2026-09-12 Pacific
 
-**In progress; final Opus follow-up pending.** The isolated repair candidate passed
-341 tests and all 27 parent checks. Runtime source is `57655fc`; verification-script
-follow-up is `5cb4d1c`. Saved examples were generated from clean `57655fc` and retain
-that real provenance. Main still contains the original delivery at `126a9a7`.
+**Claude Opus review, repairs and local integration are complete.** The recovered
+F3 reviewer reported no reproducible findings in its earlier snapshot. Opus then
+independently reviewed `1c20cf9..5cb4d1c` and found no actionable runtime defects.
+Both bounded Codex repair reviews also completed without actionable findings.
+Claude Code now defaults to Opus.
 
-The requested Claude Code review ran on Opus, which is also now its global default.
-Three Opus verification reports confirmed the original runtime repairs. Further
-review/verification gaps were repaired. Both bounded Codex reviews completed
-without actionable findings; the final Opus continuation and integration remain. The provider
-quota resets at 05:30 Pacific; this task resumes automatically at 05:35 Pacific.
+Local main was fast-forwarded through `bd84199`. On that clean checkout, independent
+verification passed **341 tests in 18.36 seconds and all 27 checks**, including
+lint, offline verification, build, installed-wheel behavior, exact CLI statuses,
+broken output streams, saved-report replay, frozen hashes and reviewed-source
+identity. This completion commit changes documentation only. Runtime source remains
+`57655fc`; verification-script follow-up is `5cb4d1c`. Saved examples retain their
+real clean-source provenance from `57655fc`.
 
-[The review record](docs/claude-review.md) separates fixed defects, test gaps,
-refuted claims, methodology limitations and the precise remaining work. All frozen
-inputs and policy remain unchanged. No push, deployment or public release occurred.
+[The review record](docs/claude-review.md) separates repaired defects, test gaps,
+refuted claims and coverage limits. The recovered review's unfinished mutation lead
+was investigated without reproducing a current defect; the missing audit is not
+claimed complete. All frozen inputs and policy remain unchanged. No push,
+deployment, public release or application model API call occurred.
+
+Run: `uv run reliability-lab demo --scenario regression` from
+`/Users/dw/llm-reliability-lab` (expected exit 1).
+
+**Review now:** inspect `README.md`'s synthetic-results limits, `policy.json`'s
+illustrative thresholds, and `docs/claude-review.md`'s remaining review limits before
+approving any public release.
 
 ## Original build handoff — 2026-09-11
 

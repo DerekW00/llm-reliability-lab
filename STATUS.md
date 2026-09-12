@@ -1,25 +1,24 @@
 # Build status
 
-## Current review — awaiting final Opus follow-up, 2026-09-12 Pacific
+## Current review — complete, 2026-09-12 Pacific
 
-The review/fix loop is in progress. Main is unchanged at `126a9a7`; the isolated
-`review/claude-opus` branch contains the repairs. Latest verification source is
-`5cb4d1c`, with runtime changes at `57655fc` and examples generated from that clean
-runtime source. Current candidate: **341 tests and all 27 parent verification
-checks passed**, including offline, wheel, failure handling, frozen hashes and replay.
+The authorized Claude Code review/fix loop is complete. Claude defaults to Opus;
+its recovered F3 reviewer and final Opus repair pass returned no actionable runtime
+findings. Local `main` contains the reviewed repairs, fast-forwarded through
+`bd84199`, followed by this documentation-only completion record.
 
-Three Opus verifiers confirmed the original high-severity runtime fixes; later
-repair findings were addressed and independently tested. Both bounded Codex repair reviews through `5cb4d1c` completed without
-actionable findings. See `docs/claude-review.md` for actual scope and limitations.
+Latest reviewed source is `5cb4d1c`; runtime changes are at `57655fc`, with examples
+generated from that clean runtime source. Independent main-checkout verification
+at 05:48 Pacific passed **341 tests and all 27 checks**, including offline execution,
+wheel installation, failure handling, frozen hashes, snapshot identity and replay.
+All confirmed findings are resolved. No push, deployment or public release occurred.
 
-Claude hit its session quota at 04:09 Pacific, with reset advertised at 05:30.
-A one-time app continuation is scheduled for **05:35 Pacific** in the owning task.
-It must finish the existing Opus/F3 review against the actual latest source, then
-integrate locally and run the prepared main-checkout verification. No final clean
-Opus pass or completed review loop is claimed yet. No remote writes are authorized.
+`docs/claude-review.md` records coverage, repairs and limitations. Raw review logs
+and parent results are retained locally under `reports/claude-review/` and
+`reports/claude-review-parent/`. Earlier pending checkpoints remain in Git history.
 
-Continuation evidence and exact instructions:
-`reports/claude-review/round6/RESUME.md` in the repair worktree.
+Next: inspect the synthetic-results claims, illustrative policy and review limits
+before deciding whether to publish. No additional implementation blocker is known.
 The older checkpoints below describe historical build states.
 
 ## Original delivery checkpoint — complete, 2026-09-11 Pacific
@@ -28,8 +27,7 @@ Mandatory offline acceptance is complete. Main contains the integrated build,
 fresh AI adversarial review and reproduced P2 provenance fix. Final runtime
 source is `9b1ec55`; saved reports identify that exact clean source revision.
 `FINAL_REPORT.md` records delivery history, exact commands, remaining limits and
-the morning review checklist. The delivery commit is the commit containing this
-checkpoint; resolve its full hash with `git rev-parse HEAD`.
+the morning review checklist. The original delivery commit is `126a9a7c6de0c56cc852800e8a4b8a4ed5653320`.
 
 - Final combined-branch verification: **241 tests passed**, Ruff passed, source
   and wheel built, independent wheel/console/offline checks passed.
