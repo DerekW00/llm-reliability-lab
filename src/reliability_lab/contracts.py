@@ -228,13 +228,20 @@ def read_json(path: str | Path) -> dict:
     return value
 
 
+def _case_order(item: Any) -> tuple[str, str]:
+    return item["case_id"], json.dumps(item, ensure_ascii=False, sort_keys=True,
+                                       separators=(",", ":"), allow_nan=False)
+
+
 def fingerprint(artifact: dict) -> str:
     """Hash payload content independently of object keys and case-array ordering."""
     try:
         value = dict(artifact)
         for key in ("cases", "predictions"):
             if isinstance(value.get(key), list):
-                value[key] = sorted(value[key], key=lambda item: item["case_id"])
+                # Ordering by case_id alone is not a total order once an artifact
+                # repeats one, which would leak input order into the hash.
+                value[key] = sorted(value[key], key=_case_order)
         encoded = json.dumps(value, ensure_ascii=False, sort_keys=True,
                              separators=(",", ":"), allow_nan=False).encode("utf-8")
     except (AttributeError, KeyError, TypeError, ValueError, UnicodeError) as exc:

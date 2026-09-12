@@ -660,3 +660,29 @@ def test_review_predictions_file_as_baseline_is_rejected_not_scored(tmp_path):
     assert result.returncode == 2
     assert "Traceback" not in result.stderr
     assert not (tmp_path / "out").exists() or list((tmp_path / "out").iterdir()) == []
+
+
+def test_review_fingerprint_order_independence_holds_for_repeated_ids():
+    """Sorting by case_id alone is not a total order, so input order could leak in."""
+    from reliability_lab.contracts import fingerprint
+
+    forward = {"cases": [{"case_id": "X", "value": 1}, {"case_id": "X", "value": 2}]}
+    reversed_order = {"cases": list(reversed(forward["cases"]))}
+    assert fingerprint(forward) == fingerprint(reversed_order)
+
+
+def test_review_frozen_artifact_fingerprints_are_unchanged():
+    """A hashing change must never restate the identity of a frozen input."""
+    from reliability_lab.contracts import fingerprint
+
+    expected = {
+        "data/evaluation.json": "9007d10d0528565e",
+        "data/development.json": "1f18316b2c015a55",
+        "data/duplicate-looking-development.json": "c55ae8d80699d002",
+        "data/predictions/baseline.json": "3a3f032762a8fc4c",
+        "data/predictions/regression.json": "2b89cc4c330040e9",
+        "data/predictions/repaired.json": "c1bc1c2eae500397",
+        "policy.json": "893762e325fe8ad2",
+    }
+    for relative, prefix in expected.items():
+        assert fingerprint(read_json(ROOT / relative)).startswith(prefix), relative
