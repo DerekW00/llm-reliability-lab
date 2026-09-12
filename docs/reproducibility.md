@@ -37,3 +37,15 @@ the frozen manifest and known repository revision when reviewing provenance.
 
 Python evaluation timing describes fixture grading or supplied-prediction grading;
 it is not model latency. Provider/model fields are null and `live_calls` is false.
+
+## Originality and license choice
+
+The code, documents, test cases and fictional invoice text were authored for this
+project. The dataset author confirmed no private/scraped material, employer
+repositories, correspondence or model responses were used. The orchestrator
+inspected the authored corpus before adding the MIT license. Dependencies are
+installed from official registries and retain their own licenses; their source
+is not vendored here. MIT permits a reviewer to run and adapt this small original
+demonstration. AI implementation agents and an independent adversarial review
+are part of its construction; a commit under the authorized owner's identity
+does not claim unaided authorship.
