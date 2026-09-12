@@ -1,28 +1,28 @@
 # Claude Code review and repair record
 
-Updated 2026-09-12 Pacific. **Awaiting the final Opus follow-up.** The latest
-candidate passes 341 tests. All received, confirmed repair findings have been
-addressed; the interrupted fresh Claude reviewer has not yet submitted its final
-report. This is not a claim that the review loop is complete or that the code is
-free of every possible defect.
+Updated 2026-09-12 Pacific. **Review and local integration complete.** Claude's
+final Opus pass found no actionable runtime defects in the latest repair diff.
+All received, confirmed findings have been addressed. The integrated main checkout
+passed **341 tests and all 27 parent verification checks**. The coverage limits
+below remain part of this result; a completed review is not proof of bug absence.
 
-## Current candidate and continuation
+## Integrated result
 
-- Main still contains the original delivery at `126a9a7`.
-- Repair branch: `review/claude-opus`. Runtime source was last changed in
-  `57655fc`; verification-script follow-up is `5cb4d1c`.
+- Local `main` was fast-forwarded from original delivery `126a9a7` to `bd84199`.
+  The final documentation commit changes no reviewed runtime or test code.
+- Runtime source was last changed in `57655fc`; verification-script follow-up is
+  `5cb4d1c`, the exact source snapshot reviewed by the final Opus pass.
 - Examples were generated together from clean `57655fc`, committed in `f41daa3`.
   They retain actual timestamps, durations and source revisions. Prior examples
   at `9b1ec55` and `5ce81ab` remain in Git history.
-- Claude reached its session quota at 04:09 Pacific; the provider advertised a
-  05:30 reset. This task has an app continuation at **05:35 Pacific** to resume
-  the existing Opus session and finish the remaining review/integration work.
+- The interrupted F3 transcript was recovered after the advertised quota reset.
+  Its actual old-source report and the current-source Opus report both completed;
+  the resumed Claude process exited successfully after collecting them.
 - No push, pull request, deployment or public release has occurred.
 
-The resumed task should read the local
-[continuation record](../reports/claude-review/round6/RESUME.md), inspect live Git
-state, finish the actual latest-source review, then fast-forward main and run the
-independent final verification. It must not call an interrupted review clean.
+The final reports are retained as local evidence:
+[F3 at `1c20cf9`](../reports/claude-review/round6/F3-final.md) and
+[Opus at `5cb4d1c`](../reports/claude-review/round6/OPUS-FINAL.md).
 
 ## Models, scope and review coverage
 
@@ -52,9 +52,10 @@ synthetic data and policy were reviewed without changing their bytes.
 | R6, native Codex review | Completed through the guarded wrapper; filesystem-dependent test coverage was limited by its read-only sandbox. |
 | R7, adversarial Codex plus three Ralph rounds | Completed through the guarded wrapper. Separate model family on the already-authorized ChatGPT account. |
 | Three Opus verification passes | At `1c20cf9`, all three independently confirmed closure of the original publication, stale-output and input-deletion mechanisms. They also found further repair/test gaps, addressed in the later candidate. |
-| Fresh Opus F3 | Interrupted before final write-up. Existing transcript is preserved for continuation. |
+| Fresh Opus F3 | Recovered and completed at `1c20cf9`, with no reproducible findings. Its real-checkout acceptance run passed 317 tests. Docs/examples and a delegated mutation audit were interrupted; this old-source verdict does not review later changes. |
 | Final Codex repair review | `1c20cf9..f41daa3`: native, adversarial and all three Ralph rounds reported no actionable issues. The reviewer ran 14 focused tests; adversarial review also ran 14 in-memory checks. Full filesystem/wheel checks were performed separately by the parent. |
 | Latest verification-script review | `f41daa3..5cb4d1c`: native/adversarial review and all three Ralph rounds completed without actionable findings. Adversarial in-memory checks accepted the healthy control and rejected 11 faults; five filesystem tests were blocked by sandbox permissions and their in-memory adaptations passed. Parent ran the complete suite separately. |
+| Final Opus repair review | Completed on `1c20cf9..5cb4d1c` using a byte-checked archive of the immutable snapshot. Independently exercised offline false-pass triggers, reporting rollback, reversible values, resource paths, CLI statuses and regenerated examples; no actionable runtime findings. Its archive run had 337 passes, two Git-context failures and two console-script skips; parent separately passed all 341 in the installed main checkout. |
 
 No formal advocate/skeptic/judge debate session is claimed. Contract-based
 refutations and the three main closure votes are recorded separately. The Claude
@@ -114,7 +115,7 @@ publication/validation paths. This record supersedes that stale disposition.
 
 ## Evidence and methodological limits
 
-- Initial delivery: 241 passing tests. Latest candidate: **341 passing tests**;
+- Initial delivery: 241 passing tests. Integrated main: **341 passing tests**;
   Ruff, offline verification, build and installed-wheel checks passed.
 - Baseline and repaired remain accepted (0); regression and its comparison reject
   (1). Invalid execution remains 2. All ten frozen file hashes are unchanged.
@@ -125,7 +126,10 @@ publication/validation paths. This record supersedes that stale disposition.
 - Parent direct-exit verification at clean `5cb4d1c` passed **all 27 checks**,
   including the full suite, wheel, expected failure probes, frozen hashes, snapshot
   identity and saved replay. Evidence: `reports/claude-review-parent/candidate-checks/`
-  in the main checkout. Main-checkout verification remains pending integration.
+  in the main checkout. After local integration, the same 27 checks passed on
+  clean main at `bd84199` on 2026-09-12 at 05:48 Pacific; pytest passed all 341 tests
+  in 18.36 seconds. Final evidence: `reports/claude-review-parent/final-checks/`.
+  The subsequent completion commit changes documentation only.
 - Parent independently checked 5,000 shared/cyclic/depth graph cases against an
   uncached reference during the replay repair, with no mismatch.
 - Some early reviewers overlapped writer edits. They detected drift and used Git
@@ -137,11 +141,32 @@ publication/validation paths. This record supersedes that stale disposition.
   Native/adversarial read-only sandbox limits remain explicit in the raw reports.
 - Claude's headless background ceiling killed unfinished jobs after ten minutes.
   Recovery disabled that ceiling for the same session. The later HTTP 429 quota
-  interruption is a separate blocker and does not count as a successful review.
+  interruption was a separate blocker and does not count as a successful review.
+  The final same-session recovery completed successfully with the ceiling disabled.
 - Coding-agent subscriptions were used for review. The evaluation application
   still makes no live model calls and uses only standard-library runtime code.
 
 Raw records are retained under `reports/claude-review/`. Parent direct-exit checks
 are retained under main's `reports/claude-review-parent/`. Git identities and valid
-signatures were checked for every added commit. Final integration/verification and
-the completion statement remain pending the scheduled continuation.
+signatures were checked for every added commit. Both the repair branch and final
+main verification are complete; no confirmed actionable finding remains unresolved.
+
+## Remaining review limits
+
+F3's interrupted mutation reviewer left an unproven resource-traversal lead without
+its evidence. Final Opus directly tested 13 resource-path cases and found no
+runtime defect. Parent separately verified that removing the traversal guard fails
+the two existing-outside-file tests, and that reversing candidate order fails three
+installation-layout cases. The original unfinished mutation audit is still not
+represented as completed or formally cleared.
+
+The offline helper invokes callable `cli:main`, while the installed entry point is
+`cli:run`; installed-console and stream-finalization checks are covered separately
+by pytest, the wheel helper and parent verification. The pytest socket blocklist is
+not an exhaustive network sandbox. These are stated coverage boundaries, not
+observed application defects. Final Opus checked example reproduction but did not
+repeat the README prose review or the full frozen-label audit.
+
+**Review now:** before any public release, inspect the synthetic-results limits in
+`README.md`, the illustrative thresholds in `policy.json`, and this record's
+remaining review limits. Publication remains a separate user decision.
