@@ -27,7 +27,7 @@ def blocked(*args, **kwargs):
 for name in ("connect", "connect_ex", "sendto", "sendall", "send"):
     setattr(socket.socket, name, blocked)
 for name in ("create_connection", "getaddrinfo", "gethostbyname", "gethostbyname_ex",
-             "gethostbyaddr", "getfqdn"):
+             "gethostbyaddr", "getfqdn", "getnameinfo"):
     setattr(socket, name, blocked)
 def save_guard_result():
     with open(os.environ["REVIEW_GUARD_RESULT"], "w") as file:
