@@ -12,12 +12,19 @@ not independent evidence of extraction accuracy.
    The gate checks absolute policy thresholds without a comparison baseline.
 2. Run `uv run --frozen reliability-lab demo --scenario regression`. This is
    expected to exit 1. A numeric-coercion bug treats purely numeric invoice IDs
-   as numbers and removes leading zeros. For example, an illustrative ID
-   `000123` becomes `123`; those are different IDs under the contract.
+   as numbers and removes leading zeros. In actual case EVAL-01,
+   `000482` becomes `482`; those are different IDs under the contract.
 3. Run `uv run --frozen reliability-lab demo --scenario repaired`. Removing
    numeric coercion preserves the original string IDs. The same supplier-name
    imperfection remains. The repaired demo should pass the original policy and
    the comparison checks.
+
+Allow about one minute per scenario and two minutes for the evidence and limits.
+The computed baseline and repaired micro F1 is 99.4536%, with 39/40 exact records
+and zero critical failures. The regression has 95.0820% micro F1, 31/40 exact
+records and eight critical ID failures. Open EVAL-01 to connect its source line
+to the changed identifier, then point to the original policy file: the repair
+passes without label or threshold edits.
 
 Run these separately, or use the expected-rejection shell block in
 [quickstart.md](quickstart.md). Every candidate demo computes a baseline report

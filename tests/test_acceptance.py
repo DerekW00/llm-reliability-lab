@@ -85,3 +85,22 @@ def test_report_comparison_does_not_trust_replaced_metrics_or_reference_data():
     altered["artifacts"]["dataset"]["cases"][0]["document"] += "\nReplaced input"
     with pytest.raises(InputError):
         compare_reports(original, altered)
+
+
+def test_duplicate_looking_documents_remain_independent_cases():
+    data = read_json(resource_path("data/duplicate-looking-development.json"))
+    policy = read_json(resource_path("policy.json"))
+    predictions = {"dataset_id": data["dataset_id"], "mode": "external_predictions",
+                   "scenario": "duplicate-looking-unit-check", "predictions": [
+                       {"case_id": case["case_id"], "record": deepcopy(case["expected"]),
+                        "evidence": deepcopy(case["evidence"])} for case in data["cases"]]}
+    baseline = evaluate(data, predictions, policy)
+    assert baseline["gate"]["accepted"]
+    assert baseline["summary"]["case_count"] == 2
+    predictions["predictions"][1]["record"]["invoice_id"] = (
+        predictions["predictions"][0]["record"]["invoice_id"]
+    )
+    candidate = evaluate(data, predictions, policy, baseline=baseline)
+    assert candidate["summary"]["case_count"] == 2
+    assert candidate["summary"]["critical_failure_count"] == 1
+    assert not candidate["gate"]["accepted"]

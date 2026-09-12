@@ -41,6 +41,14 @@ including missed and unsupported values, rather than counting affected records.
 
 ## Policy and comparison
 
+The unchanged bundled policy allows zero critical mismatches, requires micro F1
+at least .98, exact-record accuracy at least .95, and each field F1 at least .90.
+Allowed drops from baseline are .005 micro F1 and .025 exact-record accuracy.
+These illustrative thresholds prioritize identity, money and deadlines while
+allowing limited supplier-name imperfection. They are not calibrated against a
+deployment population. `policy.json` and its original SHA-256 in the dataset
+manifest establish the pre-results choice.
+
 The policy file supplies every threshold and the critical-field set. The gate
 checks critical failures, micro F1, exact-record accuracy, and all five field F1
 minima. It retains every failed rule. An undefined required F1 rejects even when
