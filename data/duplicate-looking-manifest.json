@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "frozen_at_utc": "2026-09-12T05:21:44.221251+00:00",
+  "provenance": "original_synthetic_agent_authored_and_agent_reviewed",
+  "construction_stage": "supplemental_development_only_after_primary_fixture_construction",
+  "reason": "Restore duplicate-looking coverage omitted from the initial delegated specification; primary data and evaluation predictions remain unchanged. No evaluation score tuning occurred.",
+  "primary_dataset_freeze_commit": "c2c4c4f26abbe413eb8db02e1b2570f3ffd458b2",
+  "sha256_kind": "raw_file_bytes",
+  "files": {
+    "data/duplicate-looking-development.json": {
+      "sha256": "b4ef2f5874b902fe530f2538d27ff5a657521aafb495507238b54ec1f04352f0",
+      "dataset_id": "synthetic-invoices-duplicate-looking-development-v1",
+      "case_count": 2
+    }
+  }
+}

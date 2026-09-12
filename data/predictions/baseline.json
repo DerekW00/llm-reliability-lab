@@ -1,0 +1,1055 @@
+{
+  "dataset_id": "synthetic-invoices-evaluation-v1",
+  "mode": "synthetic_fixture",
+  "scenario": "baseline",
+  "predictions": [
+    {
+      "case_id": "EVAL-01",
+      "record": {
+        "invoice_id": "000482",
+        "supplier_name": "Bramble Arc Foundry",
+        "currency": "USD",
+        "total_amount": "118.45",
+        "due_date": "2026-12-01"
+      },
+      "evidence": {
+        "invoice_id": [
+          3
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          2
+        ],
+        "total_amount": [
+          2
+        ],
+        "due_date": [
+          2
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-02",
+      "record": {
+        "invoice_id": "CV::72",
+        "supplier_name": "Copper Vale Bindery",
+        "currency": "EUR",
+        "total_amount": "62.20",
+        "due_date": "2026-12-02"
+      },
+      "evidence": {
+        "invoice_id": [
+          4
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          5
+        ],
+        "due_date": [
+          2
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-03",
+      "record": {
+        "invoice_id": "DR-GIFT",
+        "supplier_name": "Dapple Rune Workshop",
+        "currency": "GBP",
+        "total_amount": "0.00",
+        "due_date": "2026-12-03"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          2
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          3
+        ],
+        "due_date": [
+          4
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-04",
+      "record": {
+        "invoice_id": "001090",
+        "supplier_name": "Elfin Tide Hardware",
+        "currency": "CAD",
+        "total_amount": "105.50",
+        "due_date": "2026-12-04"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-05",
+      "record": {
+        "invoice_id": null,
+        "supplier_name": "Flax Halo Fabrication",
+        "currency": "USD",
+        "total_amount": "86.90",
+        "due_date": "2026-12-05"
+      },
+      "evidence": {
+        "invoice_id": [],
+        "supplier_name": [
+          2
+        ],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-06",
+      "record": {
+        "invoice_id": "GWP/6",
+        "supplier_name": "Garnet Wren Press",
+        "currency": null,
+        "total_amount": "230.00",
+        "due_date": "2026-12-06"
+      },
+      "evidence": {
+        "invoice_id": [
+          1
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [],
+        "total_amount": [
+          2
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-07",
+      "record": {
+        "invoice_id": "HP-107",
+        "supplier_name": "Heather Prism Services",
+        "currency": "USD",
+        "total_amount": "317.60",
+        "due_date": null
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          3
+        ],
+        "due_date": []
+      }
+    },
+    {
+      "case_id": "EVAL-08",
+      "record": {
+        "invoice_id": "IK-88",
+        "supplier_name": "Indigo Kettle Labs",
+        "currency": "EUR",
+        "total_amount": "460.25",
+        "due_date": "2026-12-08"
+      },
+      "evidence": {
+        "invoice_id": [
+          1
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          2
+        ],
+        "total_amount": [
+          2
+        ],
+        "due_date": [
+          3
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-09",
+      "record": {
+        "invoice_id": "000063",
+        "supplier_name": "Jade Compass Mill",
+        "currency": "GBP",
+        "total_amount": "91.13",
+        "due_date": "2026-12-09"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          4
+        ],
+        "currency": [
+          5
+        ],
+        "total_amount": [
+          5
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-10",
+      "record": {
+        "invoice_id": "KP-310",
+        "supplier_name": "Keel Petal Instruments",
+        "currency": null,
+        "total_amount": "75.00",
+        "due_date": "2026-12-10"
+      },
+      "evidence": {
+        "invoice_id": [
+          1
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [],
+        "total_amount": [
+          3
+        ],
+        "due_date": [
+          4
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-11",
+      "record": {
+        "invoice_id": "LN-11",
+        "supplier_name": null,
+        "currency": "CAD",
+        "total_amount": "180.08",
+        "due_date": "2026-12-11"
+      },
+      "evidence": {
+        "invoice_id": [
+          1
+        ],
+        "supplier_name": [],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-12",
+      "record": {
+        "invoice_id": "007501",
+        "supplier_name": "Lumen Fir Cartons",
+        "currency": "USD",
+        "total_amount": "38.44",
+        "due_date": "2026-12-12"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          5
+        ],
+        "due_date": [
+          3
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-13",
+      "record": {
+        "invoice_id": "MB-813",
+        "supplier_name": "Mallow Beacon Outfitters",
+        "currency": "GBP",
+        "total_amount": null,
+        "due_date": "2026-12-13"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [],
+        "due_date": [
+          6
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-14",
+      "record": {
+        "invoice_id": "NQ-414",
+        "supplier_name": "Nettle Quay Molds",
+        "currency": "EUR",
+        "total_amount": "99.95",
+        "due_date": null
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          2
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          3
+        ],
+        "due_date": []
+      }
+    },
+    {
+      "case_id": "EVAL-15",
+      "record": {
+        "invoice_id": "OAK-15",
+        "supplier_name": "Opal Alder Kilns",
+        "currency": "CAD",
+        "total_amount": "412.00",
+        "due_date": "2026-08-12"
+      },
+      "evidence": {
+        "invoice_id": [
+          5
+        ],
+        "supplier_name": [
+          5
+        ],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-16",
+      "record": {
+        "invoice_id": "PP-216",
+        "supplier_name": "Pépinière Pixel & Co.",
+        "currency": "EUR",
+        "total_amount": "54.70",
+        "due_date": "2026-12-16"
+      },
+      "evidence": {
+        "invoice_id": [
+          3
+        ],
+        "supplier_name": [
+          2
+        ],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-17",
+      "record": {
+        "invoice_id": "003008",
+        "supplier_name": "Quince Loom Parts",
+        "currency": "USD",
+        "total_amount": "808.08",
+        "due_date": "2026-12-17"
+      },
+      "evidence": {
+        "invoice_id": [
+          3
+        ],
+        "supplier_name": [
+          2
+        ],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-18",
+      "record": {
+        "invoice_id": "RM-118",
+        "supplier_name": "Rook Marigold Machining",
+        "currency": "GBP",
+        "total_amount": "140.10",
+        "due_date": null
+      },
+      "evidence": {
+        "invoice_id": [
+          1
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          2
+        ],
+        "total_amount": [
+          2
+        ],
+        "due_date": []
+      }
+    },
+    {
+      "case_id": "EVAL-19",
+      "record": {
+        "invoice_id": "SLT-919",
+        "supplier_name": "Sable Lantern Textiles",
+        "currency": "USD",
+        "total_amount": "369.55",
+        "due_date": "2026-12-19"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-20",
+      "record": {
+        "invoice_id": "ta.Xq-20",
+        "supplier_name": "Tinsel Arbor Models",
+        "currency": "CAD",
+        "total_amount": "206.02",
+        "due_date": "2026-12-20"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          3
+        ],
+        "due_date": [
+          4
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-21",
+      "record": {
+        "invoice_id": "00A-21",
+        "supplier_name": "Upland Fern Devices",
+        "currency": "EUR",
+        "total_amount": "28.28",
+        "due_date": "2026-12-21"
+      },
+      "evidence": {
+        "invoice_id": [
+          3
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          4
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-22",
+      "record": {
+        "invoice_id": "VGC-222",
+        "supplier_name": "Violet Gear Conservatory",
+        "currency": "GBP",
+        "total_amount": "222.22",
+        "due_date": "2028-02-29"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          3
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-23",
+      "record": {
+        "invoice_id": "000905",
+        "supplier_name": "Wicker Nova Supply",
+        "currency": "CAD",
+        "total_amount": "59.05",
+        "due_date": "2026-12-23"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          3
+        ],
+        "due_date": [
+          2
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-24",
+      "record": {
+        "invoice_id": "YPJ-24-R",
+        "supplier_name": "Yarrow Pixel Joinery",
+        "currency": "USD",
+        "total_amount": "624.24",
+        "due_date": "2026-12-24"
+      },
+      "evidence": {
+        "invoice_id": [
+          3
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          4
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-25",
+      "record": {
+        "invoice_id": "ZCF-25",
+        "supplier_name": "Zinnia Cove Fixtures",
+        "currency": "EUR",
+        "total_amount": "350.00",
+        "due_date": "2026-12-25"
+      },
+      "evidence": {
+        "invoice_id": [
+          1
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-26",
+      "record": {
+        "invoice_id": null,
+        "supplier_name": "Aster Sloop Materials",
+        "currency": "CAD",
+        "total_amount": "126.26",
+        "due_date": "2026-12-26"
+      },
+      "evidence": {
+        "invoice_id": [],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          5
+        ],
+        "total_amount": [
+          5
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-27",
+      "record": {
+        "invoice_id": "BVP-27",
+        "supplier_name": "Bluebell Vane Products",
+        "currency": "GBP",
+        "total_amount": "57.17",
+        "due_date": "2026-12-27"
+      },
+      "evidence": {
+        "invoice_id": [
+          1
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          3
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-28",
+      "record": {
+        "invoice_id": "429",
+        "supplier_name": "Clover Axis Castings",
+        "currency": "USD",
+        "total_amount": "429.00",
+        "due_date": "2026-12-28"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          3
+        ],
+        "currency": [
+          5
+        ],
+        "total_amount": [
+          5
+        ],
+        "due_date": [
+          4
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-29",
+      "record": {
+        "invoice_id": "DRT-29",
+        "supplier_name": "Dewdrop Rafter Tools",
+        "currency": "GBP",
+        "total_amount": "88.29",
+        "due_date": null
+      },
+      "evidence": {
+        "invoice_id": [
+          1
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          2
+        ],
+        "total_amount": [
+          2
+        ],
+        "due_date": []
+      }
+    },
+    {
+      "case_id": "EVAL-30",
+      "record": {
+        "invoice_id": null,
+        "supplier_name": null,
+        "currency": null,
+        "total_amount": null,
+        "due_date": null
+      },
+      "evidence": {
+        "invoice_id": [],
+        "supplier_name": [],
+        "currency": [],
+        "total_amount": [],
+        "due_date": []
+      }
+    },
+    {
+      "case_id": "EVAL-31",
+      "record": {
+        "invoice_id": "0000",
+        "supplier_name": "Elm Tapestry Systems",
+        "currency": "USD",
+        "total_amount": "0.00",
+        "due_date": "2026-12-31"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          3
+        ],
+        "due_date": [
+          4
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-32",
+      "record": {
+        "invoice_id": "FSS[32]",
+        "supplier_name": "Fennel Spur Switches",
+        "currency": "CAD",
+        "total_amount": "132.32",
+        "due_date": "2027-01-02"
+      },
+      "evidence": {
+        "invoice_id": [
+          1
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          2
+        ],
+        "total_amount": [
+          2
+        ],
+        "due_date": [
+          2
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-33",
+      "record": {
+        "invoice_id": "GSS-33",
+        "supplier_name": "Ginkgo Straße Studio",
+        "currency": "EUR",
+        "total_amount": "33.33",
+        "due_date": "2027-01-03"
+      },
+      "evidence": {
+        "invoice_id": [
+          5
+        ],
+        "supplier_name": [
+          2
+        ],
+        "currency": [
+          5
+        ],
+        "total_amount": [
+          5
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-34",
+      "record": {
+        "invoice_id": "HKE-34",
+        "supplier_name": "Hawthorn Kite Enamels",
+        "currency": "GBP",
+        "total_amount": null,
+        "due_date": "2027-01-04"
+      },
+      "evidence": {
+        "invoice_id": [
+          1
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          2
+        ],
+        "total_amount": [],
+        "due_date": [
+          6
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-35",
+      "record": {
+        "invoice_id": "IC-35",
+        "supplier_name": "Islet Cobalt Shapes",
+        "currency": "EUR",
+        "total_amount": "135.35",
+        "due_date": "2027-01-07"
+      },
+      "evidence": {
+        "invoice_id": [
+          3
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          3
+        ],
+        "due_date": [
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-36",
+      "record": {
+        "invoice_id": "000-51",
+        "supplier_name": "Julep Harbor Spares",
+        "currency": "CAD",
+        "total_amount": "51.00",
+        "due_date": "2027-01-06"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          3
+        ],
+        "due_date": [
+          4
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-37",
+      "record": {
+        "invoice_id": "000712",
+        "supplier_name": "Knoll Ember Gear",
+        "currency": "GBP",
+        "total_amount": "712.07",
+        "due_date": "2027-01-07"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          3
+        ],
+        "due_date": [
+          4
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-38",
+      "record": {
+        "invoice_id": "LOT-38",
+        "supplier_name": "Linden Orbit Tiles",
+        "currency": null,
+        "total_amount": "38.38",
+        "due_date": "2027-01-08"
+      },
+      "evidence": {
+        "invoice_id": [
+          1
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [],
+        "total_amount": [
+          2
+        ],
+        "due_date": [
+          3
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-39",
+      "record": {
+        "invoice_id": "MPD-39",
+        "supplier_name": "Mica Plover Dies",
+        "currency": "USD",
+        "total_amount": "939.39",
+        "due_date": "2027-01-09"
+      },
+      "evidence": {
+        "invoice_id": [
+          3
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          4
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          4
+        ]
+      }
+    },
+    {
+      "case_id": "EVAL-40",
+      "record": {
+        "invoice_id": "nv-Q40",
+        "supplier_name": "Nimbus Vale, Ltd.",
+        "currency": "EUR",
+        "total_amount": "40.04",
+        "due_date": "2027-01-10"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          4
+        ],
+        "due_date": [
+          5
+        ]
+      }
+    }
+  ]
+}

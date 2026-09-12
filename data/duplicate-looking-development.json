@@ -1,0 +1,77 @@
+{
+  "dataset_id": "synthetic-invoices-duplicate-looking-development-v1",
+  "version": 1,
+  "split": "development",
+  "cases": [
+    {
+      "case_id": "DUPDEV-01",
+      "document": "Brass Petal Screenworks — repeated billing slip\nInvoice reference 011842\nFinal obligation: USD 64.64\nPayment deadline 2027-01-15",
+      "tags": [
+        "family:dev_duplicate_looking_slips",
+        "duplicate_looking",
+        "leading_zero_id",
+        "numeric_id"
+      ],
+      "expected": {
+        "invoice_id": "011842",
+        "supplier_name": "Brass Petal Screenworks",
+        "currency": "USD",
+        "total_amount": "64.64",
+        "due_date": "2027-01-15"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          3
+        ],
+        "due_date": [
+          4
+        ]
+      },
+      "rationale": "This slip explicitly identifies invoice 011842. Its supplier, amount, currency, and deadline match the companion slip, but the different invoice ID makes it a distinct case. Do not merge records by visual similarity or discard the leading zero."
+    },
+    {
+      "case_id": "DUPDEV-02",
+      "document": "Brass Petal Screenworks — repeated billing slip\nInvoice reference 011843\nFinal obligation: USD 64.64\nPayment deadline 2027-01-15",
+      "tags": [
+        "family:dev_duplicate_looking_slips",
+        "duplicate_looking",
+        "leading_zero_id",
+        "numeric_id"
+      ],
+      "expected": {
+        "invoice_id": "011843",
+        "supplier_name": "Brass Petal Screenworks",
+        "currency": "USD",
+        "total_amount": "64.64",
+        "due_date": "2027-01-15"
+      },
+      "evidence": {
+        "invoice_id": [
+          2
+        ],
+        "supplier_name": [
+          1
+        ],
+        "currency": [
+          3
+        ],
+        "total_amount": [
+          3
+        ],
+        "due_date": [
+          4
+        ]
+      },
+      "rationale": "This slip explicitly identifies invoice 011843. Its supplier, amount, currency, and deadline match the companion slip, but the different invoice ID makes it a distinct case. Do not merge records by visual similarity or discard the leading zero."
+    }
+  ]
+}
