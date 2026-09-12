@@ -268,7 +268,7 @@ def test_report_shows_critical_examples_first_and_bounds_excerpts(report):
     report["diffs"].append(make_diff("z-critical"))
     result = reporting.render_report(report)
     assert "Showing 10 of 13" in result
-    assert result.index("### z") < result.index("### a")
+    assert result.index('### "z') < result.index('### "a')
     assert result.count("### ") == 10
 
 
