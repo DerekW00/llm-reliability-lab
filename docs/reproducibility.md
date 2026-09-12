@@ -21,7 +21,8 @@ The CI action references were checked against the official
 Actions are pinned to commit hashes; the uv executable is pinned to the version
 used locally. The workflow installs prerequisites, runs lint and pytest, checks
 the CLI's expected rejection signals under the offline instrumentation, and
-builds distributions. Configuration does not imply a remotely executed CI run.
+builds distributions, and checks a fresh wheel installation under the independent
+offline guard. Configuration does not imply a remotely executed CI run.
 
 Content fingerprints identify validated dataset, predictions and policy JSON,
 with object keys and case arrays ordered deterministically. The dataset manifest

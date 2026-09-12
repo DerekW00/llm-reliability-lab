@@ -21,3 +21,5 @@ jobs:
       - name: Check actual CLI exit signals with network calls forbidden
         run: uv run --offline python scripts/verify_offline.py
       - run: uv build
+      - name: Verify the installed wheel and its offline console entry point
+        run: uv run --offline python tests/review_support/verify_wheel.py dist/llm_reliability_lab-0.1.0-py3-none-any.whl
