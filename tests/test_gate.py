@@ -54,6 +54,24 @@ def test_comparison_threshold_equality_uses_rational_drop():
     ]
 
 
+def test_exact_accuracy_drop_from_975_to_95_passes_at_025():
+    pairs = [(RECORD, RECORD)] * 38 + [
+        (RECORD, {**RECORD, "supplier_name": "Other Studio"}),
+        (RECORD, {**RECORD, "supplier_name": "Other Studio"}),
+    ]
+    dataset, supplied, policy, baseline_predictions = comparison_inputs(pairs=pairs)
+    baseline_predictions["predictions"][-1]["record"]["supplier_name"] = "Other Studio"
+    baseline = evaluate(dataset, baseline_predictions, policy)
+    assert baseline["summary"]["exact_record_accuracy"] == 0.975
+    candidate = evaluate(dataset, supplied, policy, baseline=baseline)
+    assert candidate["summary"]["exact_record_accuracy"] == 0.95
+    assert candidate["gate"]["accepted"] is True
+    assert candidate["gate"]["checks"][-1] == {
+        "name": "exact_record_accuracy_drop", "passed": True,
+        "actual": 0.025, "required": 0.025,
+    }
+
+
 def test_comparative_rejection_is_preserved_on_replay():
     dataset, supplied, policy, baseline_predictions = comparison_inputs(pairs=[(RECORD, OTHER)])
     baseline = evaluate(dataset, baseline_predictions, policy)
@@ -183,6 +201,23 @@ def test_report_cycle_and_deep_baseline_chains_are_input_errors():
         nested = parent
     with pytest.raises(InputError, match="nesting"):
         compare_reports(baseline, nested)
+
+
+def test_comparison_never_emits_an_unreplayable_depth():
+    candidate = evaluate(*artifacts())
+    baseline = candidate
+    for _ in range(MAX_BASELINE_DEPTH - 1):
+        baseline = compare_reports(baseline, candidate)
+    assert baseline["gate"]["accepted"] is True
+    with pytest.raises(InputError, match="nesting"):
+        compare_reports(baseline, candidate)
+
+
+def test_very_large_integer_provenance_duration_does_not_overflow():
+    baseline = evaluate(*artifacts())
+    baseline["provenance"]["evaluation_seconds"] = 10 ** 500
+    # Integers are finite JSON numbers; duration metadata is not an attestation.
+    assert compare_reports(baseline, baseline)["gate"]["accepted"] is True
 
 
 def test_json_round_trip_and_shuffled_artifacts_replay():
