@@ -65,9 +65,9 @@ Action: Check supplier selection and spelling against the cited source\.
 
 ## Reproducibility and limits
 
-Timestamp (UTC): 2026\-09\-12T10:24:15\.993079Z.
-Code revision: "5ce81ab5057a822c5c115bcff4d22f35a0d31c68"; working tree dirty: false; Python: 3\.12\.14.
-Evaluation time: 0.046635 seconds (fixture\_evaluation); this is not model latency.
+Timestamp (UTC): 2026\-09\-12T11:20:14\.126010Z.
+Code revision: "57655fca4f8e205bd5517f32561c59c5a27806df"; working tree dirty: false; Python: 3\.12\.14.
+Evaluation time: 0.048576 seconds (fixture\_evaluation); this is not model latency.
 
 - dataset\_sha256: 9007d10d0528565e20efc317a01e917f55586db0d6ff2a83e862bb65980ed88f
 - predictions\_sha256: 3a3f032762a8fc4c5e2c30f603ff7dcabd4a87d96f25edc76375129240410ea4
