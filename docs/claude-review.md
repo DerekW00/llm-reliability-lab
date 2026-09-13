@@ -18,11 +18,13 @@ below remain part of this result; a completed review is not proof of bug absence
 - The interrupted F3 transcript was recovered after the advertised quota reset.
   Its actual old-source report and the current-source Opus report both completed;
   the resumed Claude process exited successfully after collecting them.
-- No push, pull request, deployment or public release has occurred.
+- At review completion, no push, pull request, deployment or public release had
+  occurred. Later publication status is recorded in `STATUS.md`.
 
-The final reports are retained as local evidence:
-[F3 at `1c20cf9`](../reports/claude-review/round6/F3-final.md) and
-[Opus at `5cb4d1c`](../reports/claude-review/round6/OPUS-FINAL.md).
+The final raw reports are retained as local evidence under
+`reports/claude-review/round6/`: `F3-final.md` at `1c20cf9` and `OPUS-FINAL.md`
+at `5cb4d1c`. Raw session logs and transient reports are excluded from Git; this
+committed record summarizes their findings, checks and limitations.
 
 ## Models, scope and review coverage
 
@@ -48,7 +50,7 @@ synthetic data and policy were reviewed without changing their bytes.
 | R2, holistic review | Completed on Opus. |
 | R3, built-in code review | Invoked at maximum effort, with its own review output/fan-out. |
 | R4, plugin protocol | Compliance, shallow bugs, Git history and in-code guidance completed; protocol-specific Sonnet/Haiku roles used. Past-PR comments unavailable because there is no remote or PR history. |
-| R5, repository-specific dual harness | Skipped: applies to the DBB/app repository, not this project. No employer source was read. |
+| R5, repository-specific dual harness | Skipped: applies to a different private repository, not this project. No employer source was read. |
 | R6, native Codex review | Completed through the guarded wrapper; filesystem-dependent test coverage was limited by its read-only sandbox. |
 | R7, adversarial Codex plus three Ralph rounds | Completed through the guarded wrapper. Separate model family on the already-authorized ChatGPT account. |
 | Three Opus verification passes | At `1c20cf9`, all three independently confirmed closure of the original publication, stale-output and input-deletion mechanisms. They also found further repair/test gaps, addressed in the later candidate. |
@@ -120,7 +122,7 @@ publication/validation paths. This record supersedes that stale disposition.
 - Baseline and repaired remain accepted (0); regression and its comparison reject
   (1). Invalid execution remains 2. All ten frozen file hashes are unchanged.
 - Ten targeted mutation families were caught by named regression tests, with
-  outputs preserved in [mutation results](../reports/claude-review/round6/mutation-results.json).
+  outputs preserved locally in `reports/claude-review/round6/mutation-results.json`.
   The mutation harness clears Python bytecode caches between edits; otherwise a
   same-length edit within one second can falsely appear to survive.
 - Parent direct-exit verification at clean `5cb4d1c` passed **all 27 checks**,
