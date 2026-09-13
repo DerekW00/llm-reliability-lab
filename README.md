@@ -34,7 +34,14 @@ Python 3.12.14. If needed, `uv python install` installs the version recorded in
 `.python-version`. Dependency installation can use the network; running the
 application uses local files only. Tested locally with uv 0.12.8.
 
-From this repository, run these commands **one at a time**:
+Clone the repository and enter its directory:
+
+```sh
+git clone https://github.com/DerekW00/llm-reliability-lab.git
+cd llm-reliability-lab
+```
+
+Then run these commands **one at a time**:
 
 ```sh
 uv sync --frozen
@@ -119,10 +126,12 @@ defense benchmark or production-ready finance system. There is no OCR, PDF parse
 live provider adapter, statistical generalization claim or semantic evidence judge.
 Evidence references validate line locations, not entailment. Four currencies and
 nonnegative, two-place amounts are supported. Policy thresholds are illustrative.
-GitHub Actions is configured; no remote CI run, publication or deployment is claimed.
+The [GitHub Actions workflow](https://github.com/DerekW00/llm-reliability-lab/actions/workflows/ci.yml)
+checks lint, tests, offline execution and the installed wheel. No hosted application
+or package release is provided.
 
 Read [SPEC.md](SPEC.md), [dataset](docs/dataset.md), [evaluation](docs/evaluation.md),
-[walkthrough](docs/walkthrough.md), [independent review](docs/review.md), and
+[walkthrough](docs/walkthrough.md), [independent review](docs/review.md), [Opus repair review](docs/claude-review.md), and
 [FINAL_REPORT.md](FINAL_REPORT.md) for the contract and verified local handoff.
 Construction details are in [reproducibility](docs/reproducibility.md).
 Original project contents use the [MIT license](LICENSE).
