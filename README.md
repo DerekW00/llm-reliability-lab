@@ -134,4 +134,6 @@ Read [SPEC.md](SPEC.md), [dataset](docs/dataset.md), [evaluation](docs/evaluatio
 [walkthrough](docs/walkthrough.md), [independent review](docs/review.md), [Opus repair review](docs/claude-review.md), and
 [FINAL_REPORT.md](FINAL_REPORT.md) for the contract and verified local handoff.
 Construction details are in [reproducibility](docs/reproducibility.md).
+Commit dates follow a documented [reconstructed two-week timeline](docs/history-timeline.md);
+the original signed history and actual build dates are preserved.
 Original project contents use the [MIT license](LICENSE).

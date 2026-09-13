@@ -1,5 +1,20 @@
 # Build status
 
+## Commit-date reconstruction — 2026-09-12 Pacific
+
+At the user's request, the 39 existing commit timestamps were reassigned across
+August 30–September 12, grouped by the existing build and review milestones.
+The original signed history is preserved under
+`history/original-timestamps-2026-09-12`; a local bundle is retained for recovery.
+`docs/history-timeline.md` records the original and rewritten hashes and dates.
+
+All 39 commit file trees, messages, identities and merge relationships are
+preserved, and the replacement signatures were verified. Historical source hashes
+in saved reports and review records remain valid in the archived original history.
+The rewrite changes historical metadata; no implementation, tests, frozen inputs,
+policy or saved result bytes were changed. New documentation records the rewrite
+with an actual current timestamp.
+
 ## GitHub publication — complete, 2026-09-12 Pacific
 
 The user authorized public publication after the local review completed. The
