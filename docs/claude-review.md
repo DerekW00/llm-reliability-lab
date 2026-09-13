@@ -169,6 +169,7 @@ not an exhaustive network sandbox. These are stated coverage boundaries, not
 observed application defects. Final Opus checked example reproduction but did not
 repeat the README prose review or the full frozen-label audit.
 
-**Review now:** before any public release, inspect the synthetic-results limits in
-`README.md`, the illustrative thresholds in `policy.json`, and this record's
-remaining review limits. Publication remains a separate user decision.
+The pre-publication review checklist covered the synthetic-results limits in
+`README.md`, illustrative thresholds in `policy.json`, and this record's remaining
+review limits. The user subsequently authorized GitHub publication; `STATUS.md`
+records that publication separately from the review result.
