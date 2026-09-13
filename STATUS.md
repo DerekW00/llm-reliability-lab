@@ -1,5 +1,23 @@
 # Build status
 
+## GitHub publication — complete, 2026-09-12 Pacific
+
+The user authorized public publication after the local review completed. The
+repository is public at [DerekW00/llm-reliability-lab](https://github.com/DerekW00/llm-reliability-lab),
+with `main` as the default branch and local `main` tracking `origin/main`.
+Publication used the existing personal SSH credential verified as `DerekW00`;
+no account permissions were changed. Original signed history is preserved.
+
+The tracked source, frozen fixtures, MIT license, examples and review summaries
+are published. Raw review sessions, temporary reports, environments and build
+outputs remain excluded from Git. The runtime remains fully local; no hosted
+application or package release was created.
+
+[GitHub Actions](https://github.com/DerekW00/llm-reliability-lab/actions/workflows/ci.yml)
+runs the offline verification workflow on pushes and pull requests. The local
+341-test and 27-check evidence remains recorded below. Refer to the linked run
+history for remote results and the exact source revision each run checked.
+
 ## Current review — complete, 2026-09-12 Pacific
 
 The authorized Claude Code review/fix loop is complete. Claude defaults to Opus;

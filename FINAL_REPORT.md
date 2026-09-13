@@ -1,4 +1,21 @@
-# LLM Reliability Lab — local handoff
+# LLM Reliability Lab — project handoff
+
+## Public repository — 2026-09-12 Pacific
+
+Published at **[DerekW00/llm-reliability-lab](https://github.com/DerekW00/llm-reliability-lab)**
+following the user's explicit publication request. The default branch is `main`.
+The repository includes the source, frozen synthetic inputs, generated examples,
+MIT license and committed review records, with the original signed history intact.
+Raw local review logs and temporary outputs are excluded from Git.
+
+[GitHub Actions results](https://github.com/DerekW00/llm-reliability-lab/actions/workflows/ci.yml)
+show the remote offline checks for each pushed revision. This publishes the source
+repository; the application still runs locally with no live model calls. No hosted
+application, package release or separate deployment was created.
+
+The dated sections below preserve the pre-publication build and review evidence.
+Their original restrictions describe the authorization in force at those times;
+the later publication request authorized this GitHub repository and its pushes.
 
 ## Review follow-up — complete, 2026-09-12 Pacific
 
